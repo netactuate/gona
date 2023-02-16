@@ -69,7 +69,7 @@ func (c *Client) GetBGPSessions(mbPkgID int) ([]*BGPSession, error) {
 
 	err := c.get("bgp/bgpsessions", &allSessions)
 	if err != nil {
-		return nil, fmt.Errorf("BGPSessions1: %w", err)
+		return nil, err
 	}
 	if len(allSessions) == 0 {
 		return nil, nil
@@ -77,10 +77,10 @@ func (c *Client) GetBGPSessions(mbPkgID int) ([]*BGPSession, error) {
 
 	ips, err := c.GetIPs(mbPkgID)
 	if err != nil {
-		return nil, fmt.Errorf("BGPSessions2: %w", err)
+		return nil, err
 	}
 	if len(ips.IPv4) == 0 && len(ips.IPv6) == 0 {
-		return nil, fmt.Errorf("BGPSessions3: %w", err)
+		return nil, err
 	}
 
 	ipsMap := *ips.GetIPsMap()
@@ -92,7 +92,7 @@ func (c *Client) GetBGPSessions(mbPkgID int) ([]*BGPSession, error) {
 		if exists {
 			ss, err := c.GetBGPSession(session.ID)
 			if err != nil {
-				return nil, fmt.Errorf("BGPSessions4: %w", err)
+				return nil, err
 			}
 			sessions = append(sessions, ss)
 		}

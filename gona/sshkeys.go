@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-// SSHKey is what it is
+// SSHKey Struct 
 type SSHKey struct {
 	ID          int    `json:"id"`
 	Name        string `json:"name"`
@@ -13,7 +13,7 @@ type SSHKey struct {
 	Fingerprint string `json:"fingerprint"`
 }
 
-// GetSSHKeys as in many keys
+// GetSSHKeys will list all SSH Keys installed for the account
 func (c *Client) GetSSHKeys() (keys []SSHKey, err error) {
 	var sshkeyList []SSHKey
 	if err := c.get("account/ssh_keys", &sshkeyList); err != nil {
@@ -22,7 +22,7 @@ func (c *Client) GetSSHKeys() (keys []SSHKey, err error) {
 	return sshkeyList, nil
 }
 
-// GetSSHKey as in one key
+// GetSSHKey will list the information on a specific key
 func (c *Client) GetSSHKey(id int) (sshkey SSHKey, err error) {
 	if err := c.get("account/ssh_key/"+strconv.Itoa(id), &sshkey); err != nil {
 		return SSHKey{}, err

@@ -33,7 +33,7 @@ type Client struct {
 	apiKey    string
 }
 
-// GetKeyFromEnv is a simple function to try to yank the value for
+// GetKeyFromEnv is a simple function to grab the value for
 // "NA_API_KEY" from the environment
 func GetKeyFromEnv() string {
 	return os.Getenv("NA_API_KEY")

@@ -1,6 +1,6 @@
 package gona
 
-// Location is an API response message identifyin a particular location.
+// Location is an API response message of available deployment locations
 type Location struct {
 	ID        int    `json:"id"`
 	Name      string `json:"name"`
