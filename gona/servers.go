@@ -124,3 +124,23 @@ func (c *Client) DeleteServer(id int, cancelBilling bool) error {
 func (c *Client) UnlinkServer(id int) error {
 	return c.post("cloud/server/unlink/"+strconv.Itoa(id), nil, nil)
 }
+
+// StartServer external method on Client to boot up an instance
+func (c *Client) StartServer(id int) error {
+
+	if err := c.post("cloud/server/start/"+strconv.Itoa(id), nil, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// StopServer external method on Client to shut down an instance
+func (c *Client) StopServer(id int) error {
+
+	if err := c.post("cloud/server/shutdown/"+strconv.Itoa(id), nil, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
