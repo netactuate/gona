@@ -2,7 +2,7 @@ package gona
 
 // OS is a struct for storing the attributes of an OS
 type OS struct {
-	ID      int    `json:"id,string"`
+	ID      int    `json:"id"`
 	Os      string `json:"os"`
 	Type    string `json:"type"`
 	Subtype string `json:"subtype"`
