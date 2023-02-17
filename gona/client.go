@@ -170,7 +170,7 @@ func (c *Client) do(req *http.Request, data any) error {
 		return fmt.Errorf("could not unmarshal response %q: %w", string(body), err)
 	}
 
-	if resp.StatusCode != http.StatusOK || r.Code != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != 422 || r.Code != http.StatusOK && r.Code != 422 {
 		return fmt.Errorf("got an error response on %s %s: code %d, response %+v", req.Method, req.URL, resp.StatusCode, r.Data)
 	}
     
