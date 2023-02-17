@@ -35,10 +35,15 @@ Rest API at <a href="https://vapi2.netactuate.com/">https://vapi2.netactuate.com
   * [func (c *Client) GetIPs(mbPkgID int) (ips IPs, err error)](#Client.GetIPs)
   * [func (c *Client) GetLocations() ([]Location, error)](#Client.GetLocations)
   * [func (c *Client) GetOSs() ([]OS, error)](#Client.GetOSs)
+  * [func (c *Client) GetPackage(id int) (pkg Package, err error)](#Client.GetPackage)
+  * [func (c *Client) GetPackages() ([]Package, error)](#Client.GetPackages)
+  * [func (c *Client) GetPlans() ([]Plan, error)](#Client.GetPlans)
   * [func (c *Client) GetSSHKey(id int) (sshkey SSHKey, err error)](#Client.GetSSHKey)
   * [func (c *Client) GetSSHKeys() (keys []SSHKey, err error)](#Client.GetSSHKeys)
   * [func (c *Client) GetServer(id int) (server Server, err error)](#Client.GetServer)
   * [func (c *Client) GetServers() ([]Server, error)](#Client.GetServers)
+  * [func (c *Client) StartServer(id int) error](#Client.StartServer)
+  * [func (c *Client) StopServer(id int) error](#Client.StopServer)
   * [func (c *Client) UnlinkServer(id int) error](#Client.UnlinkServer)
 * [type CreateServerRequest](#CreateServerRequest)
 * [type IP](#IP)
@@ -47,6 +52,8 @@ Rest API at <a href="https://vapi2.netactuate.com/">https://vapi2.netactuate.com
   * [func (ips *IPs) GetIPsMap() *map[string]IPType](#IPs.GetIPsMap)
 * [type Location](#Location)
 * [type OS](#OS)
+* [type Package](#Package)
+* [type Plan](#Plan)
 * [type Prefix](#Prefix)
 * [type SSHKey](#SSHKey)
 * [type Server](#Server)
@@ -54,7 +61,7 @@ Rest API at <a href="https://vapi2.netactuate.com/">https://vapi2.netactuate.com
 
 
 #### <a name="pkg-files">Package files</a>
-[bgp.go](/src/target/bgp.go) [client.go](/src/target/client.go) [ip.go](/src/target/ip.go) [locations.go](/src/target/locations.go) [os.go](/src/target/os.go) [servers.go](/src/target/servers.go) [sshkeys.go](/src/target/sshkeys.go) 
+[bgp.go](/src/target/bgp.go) [client.go](/src/target/client.go) [ip.go](/src/target/ip.go) [locations.go](/src/target/locations.go) [os.go](/src/target/os.go) [packages.go](/src/target/packages.go) [plans.go](/src/target/plans.go) [servers.go](/src/target/servers.go) [sshkeys.go](/src/target/sshkeys.go) 
 
 
 ## <a name="pkg-constants">Constants</a>
@@ -70,17 +77,17 @@ Version, BaseEndpoint, ContentType constants
 
 
 
-## <a name="GetKeyFromEnv">func</a> [GetKeyFromEnv](/src/target/client.go?s=775:802#L38)
+## <a name="GetKeyFromEnv">func</a> [GetKeyFromEnv](/src/target/client.go?s=768:795#L38)
 ``` go
 func GetKeyFromEnv() string
 ```
-GetKeyFromEnv is a simple function to try to yank the value for
+GetKeyFromEnv is a simple function to grab the value for
 "NA_API_KEY" from the environment
 
 
 
 
-## <a name="BGPCreateSessionsInput">type</a> [BGPCreateSessionsInput](/src/target/bgp.go?s=2915:3148#L104)
+## <a name="BGPCreateSessionsInput">type</a> [BGPCreateSessionsInput](/src/target/bgp.go?s=2787:3020#L104)
 ``` go
 type BGPCreateSessionsInput struct {
     MbPkgID   int `json:"mbpkgid"` // Contract BGP ID
@@ -192,7 +199,7 @@ It has the following fields:
 
 
 
-### <a name="NewClient">func</a> [NewClient](/src/target/client.go?s=1547:1584#L66)
+### <a name="NewClient">func</a> [NewClient](/src/target/client.go?s=1540:1577#L66)
 ``` go
 func NewClient(apikey string) *Client
 ```
@@ -200,7 +207,7 @@ NewClient takes an apikey and calls NewClientCustom with the hardcoded
 BaseEndpoint constant API URL
 
 
-### <a name="NewClientCustom">func</a> [NewClientCustom](/src/target/client.go?s=1022:1080#L45)
+### <a name="NewClientCustom">func</a> [NewClientCustom](/src/target/client.go?s=1015:1073#L45)
 ``` go
 func NewClientCustom(apikey string, apiurl string) *Client
 ```
@@ -221,14 +228,14 @@ BuildServer external method on Client to re-build an instance
 
 
 
-### <a name="Client.CreateBGPSessions">func</a> (\*Client) [CreateBGPSessions](/src/target/bgp.go?s=3150:3260#L111)
+### <a name="Client.CreateBGPSessions">func</a> (\*Client) [CreateBGPSessions](/src/target/bgp.go?s=3022:3132#L111)
 ``` go
 func (c *Client) CreateBGPSessions(mbPkgID int, groupID int, isIPV6 bool, redundant bool) (*BGPSession, error)
 ```
 
 
 
-### <a name="Client.CreateSSHKey">func</a> (\*Client) [CreateSSHKey](/src/target/sshkeys.go?s=713:787#L34)
+### <a name="Client.CreateSSHKey">func</a> (\*Client) [CreateSSHKey](/src/target/sshkeys.go?s=770:844#L34)
 ``` go
 func (c *Client) CreateSSHKey(name, key string) (sshkey SSHKey, err error)
 ```
@@ -246,7 +253,7 @@ CreateServer external method on Client to buy and build a new instance.
 
 
 
-### <a name="Client.DeleteSSHKey">func</a> (\*Client) [DeleteSSHKey](/src/target/sshkeys.go?s=1034:1077#L47)
+### <a name="Client.DeleteSSHKey">func</a> (\*Client) [DeleteSSHKey](/src/target/sshkeys.go?s=1091:1134#L47)
 ``` go
 func (c *Client) DeleteSSHKey(id int) error
 ```
@@ -300,7 +307,7 @@ GetLocations public method on Client to get a list of locations
 
 
 
-### <a name="Client.GetOSs">func</a> (\*Client) [GetOSs](/src/target/os.go?s=356:395#L15)
+### <a name="Client.GetOSs">func</a> (\*Client) [GetOSs](/src/target/os.go?s=349:388#L15)
 ``` go
 func (c *Client) GetOSs() ([]OS, error)
 ```
@@ -309,20 +316,49 @@ GetOSs returns a list of OS objects from the api
 
 
 
-### <a name="Client.GetSSHKey">func</a> (\*Client) [GetSSHKey](/src/target/sshkeys.go?s=493:554#L26)
+### <a name="Client.GetPackage">func</a> (\*Client) [GetPackage](/src/target/packages.go?s=718:778#L29)
+``` go
+func (c *Client) GetPackage(id int) (pkg Package, err error)
+```
+GetPackage external method on Client that takes an id (int) as it's sole
+argument and returns a single Package object
+
+
+
+
+### <a name="Client.GetPackages">func</a> (\*Client) [GetPackages](/src/target/packages.go?s=400:449#L16)
+``` go
+func (c *Client) GetPackages() ([]Package, error)
+```
+GetPackages external method on Client that returns a
+list of Package object from the API
+
+
+
+
+### <a name="Client.GetPlans">func</a> (\*Client) [GetPlans](/src/target/plans.go?s=396:439#L15)
+``` go
+func (c *Client) GetPlans() ([]Plan, error)
+```
+GetPlans external method on Client to list available Plans
+
+
+
+
+### <a name="Client.GetSSHKey">func</a> (\*Client) [GetSSHKey](/src/target/sshkeys.go?s=550:611#L26)
 ``` go
 func (c *Client) GetSSHKey(id int) (sshkey SSHKey, err error)
 ```
-GetSSHKey as in one key
+GetSSHKey will list the information on a specific key
 
 
 
 
-### <a name="Client.GetSSHKeys">func</a> (\*Client) [GetSSHKeys](/src/target/sshkeys.go?s=270:326#L17)
+### <a name="Client.GetSSHKeys">func</a> (\*Client) [GetSSHKeys](/src/target/sshkeys.go?s=297:353#L17)
 ``` go
 func (c *Client) GetSSHKeys() (keys []SSHKey, err error)
 ```
-GetSSHKeys as in many keys
+GetSSHKeys will list all SSH Keys installed for the account
 
 
 
@@ -341,6 +377,24 @@ GetServer external method on Client to get an instance
 func (c *Client) GetServers() ([]Server, error)
 ```
 GetServers external method on Client to list your instances
+
+
+
+
+### <a name="Client.StartServer">func</a> (\*Client) [StartServer](/src/target/servers.go?s=4357:4399#L129)
+``` go
+func (c *Client) StartServer(id int) error
+```
+StartServer external method on Client to boot up an instance
+
+
+
+
+### <a name="Client.StopServer">func</a> (\*Client) [StopServer](/src/target/servers.go?s=4582:4623#L139)
+``` go
+func (c *Client) StopServer(id int) error
+```
+StopServer external method on Client to shut down an instance
 
 
 
@@ -460,7 +514,7 @@ type Location struct {
 }
 
 ```
-Location is an API response message identifyin a particular location.
+Location is an API response message of available deployment locations
 
 
 
@@ -471,10 +525,10 @@ Location is an API response message identifyin a particular location.
 
 
 
-## <a name="OS">type</a> [OS](/src/target/os.go?s=68:302#L4)
+## <a name="OS">type</a> [OS](/src/target/os.go?s=68:295#L4)
 ``` go
 type OS struct {
-    ID      int    `json:"id,string"`
+    ID      int    `json:"id"`
     Os      string `json:"os"`
     Type    string `json:"type"`
     Subtype string `json:"subtype"`
@@ -485,6 +539,52 @@ type OS struct {
 
 ```
 OS is a struct for storing the attributes of an OS
+
+
+
+
+
+
+
+
+
+
+## <a name="Package">type</a> [Package](/src/target/packages.go?s=86:303#L6)
+``` go
+type Package struct {
+    ID        int    `json:"mbpkgid,string"`
+    Status    string `json:"package_status"`
+    Locked    string `json:"locked"`
+    PlanName  string `json:"name"`
+    Installed int    `json:"installed,string"`
+}
+
+```
+Package struct stores the purchaced package values
+
+
+
+
+
+
+
+
+
+
+## <a name="Plan">type</a> [Plan](/src/target/plans.go?s=69:332#L4)
+``` go
+type Plan struct {
+    ID        int    `json:"plan_id,string"`
+    Name      string `json:"plan"`
+    RAM       string `json:"ram"`
+    Disk      string `json:"disk"`
+    Transfer  string `json:"transfer"`
+    Price     string `json:"price"`
+    Available string `json:"available"`
+}
+
+```
+Plan struct defines the purchaceable plans/packages
 
 
 
@@ -521,7 +621,7 @@ type Prefix struct {
 
 
 
-## <a name="SSHKey">type</a> [SSHKey](/src/target/sshkeys.go?s=72:238#L9)
+## <a name="SSHKey">type</a> [SSHKey](/src/target/sshkeys.go?s=66:232#L9)
 ``` go
 type SSHKey struct {
     ID          int    `json:"id"`
@@ -531,7 +631,7 @@ type SSHKey struct {
 }
 
 ```
-SSHKey is what it is
+SSHKey Struct
 
 
 
