@@ -133,3 +133,9 @@ func (c *Client) CreateBGPSessions(mbPkgID int, groupID int, isIPV6 bool, redund
 
 	return sessions, nil
 }
+
+// DeleteBGPSession calls DELETE /api/bgp/bgpsession/{id}/delete?key=…
+func (c *Client) DeleteBGPSession(sessionID int) error {
+    path := fmt.Sprintf("bgp/bgpsession/%d/delete", sessionID)
+    return c.post(path, nil, nil)
+}

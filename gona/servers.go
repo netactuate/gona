@@ -1,8 +1,15 @@
+// servers.go (in your github.com/netactuate/gona package)
+
 package gona
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/google/go-querystring/query"
 )
@@ -43,7 +50,7 @@ func (c *Client) GetServer(id int) (server Server, err error) {
 	return server, nil
 }
 
-// CreateServerRequest is as set of parameters for a server creation call.
+// CreateServerRequest is a set of parameters for a server creation call.
 type CreateServerRequest struct {
 	Plan                     string `url:"plan,omitempty"`
 	Location                 int    `url:"location,omitempty"`
@@ -56,7 +63,7 @@ type CreateServerRequest struct {
 	PackageBillingContractId string `url:"package_billing_contract_id,omitempty"`
 	CloudConfig              string `url:"cloud_config,omitempty"`
 	ScriptContent            string `url:"script_content,omitempty"`
-	Params     				 string `url:"params,omitempty"`
+	Params                   string `url:"params,omitempty"`
 }
 
 // ServerBuild is a server creation response message.
@@ -79,7 +86,6 @@ func (c *Client) CreateServer(r *CreateServerRequest) (b ServerBuild, err error)
 	if err := c.post("cloud/server/buy_build", []byte(values.Encode()), &b); err != nil {
 		return b, err
 	}
-
 	return b, nil
 }
 
@@ -96,7 +102,7 @@ type BuildServerRequest struct {
 	PackageBillingContractId string `url:"package_billing_contract_id,omitempty"`
 	CloudConfig              string `url:"cloud_config,omitempty"`
 	ScriptContent            string `url:"script_content,omitempty"`
-	Params     				 string `url:"params,omitempty"`
+	Params                   string `url:"params,omitempty"`
 }
 
 // BuildServer external method on Client to re-build an instance
@@ -109,24 +115,65 @@ func (c *Client) BuildServer(id int, r *BuildServerRequest) (b ServerBuild, err 
 		values.Add("script_type", "user-data")
 	}
 
-	// if r.Params != "" {
-    //     values.Add("params", r.Params)
-    // }
-
 	if err := c.post("cloud/server/build/"+strconv.Itoa(id), []byte(values.Encode()), &b); err != nil {
 		return b, err
 	}
-
 	return b, nil
 }
 
-// DeleteServer external method on Client to destroy an instance.
-func (c *Client) DeleteServer(id int, cancelBilling bool) error {
+// DeleteServer sends a delete request, surfaces any API‐reported errors,
+// and returns the asynchronous job ID.
+func (c *Client) DeleteServer(id int, cancelBilling bool) (int, error) {
 	values := url.Values{}
+	values.Set("mbpkgid", fmt.Sprint(id))
 	if cancelBilling {
-		values.Add("cancel_billing", "1")
+		values.Set("cancel_billing", "1")
 	}
-	return c.post("cloud/server/delete?mbpkgid="+strconv.Itoa(id), []byte(values.Encode()), nil)
+	body := []byte(values.Encode())
+
+	// Build request manually to capture raw API errors
+	req, err := c.newRequest("POST", "cloud/server/delete", bytes.NewBuffer(body))
+	if err != nil {
+		return 0, fmt.Errorf("DeleteServer(%d) build request: %w", id, err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("DeleteServer(%d) HTTP error: %w", id, err)
+	}
+	defer resp.Body.Close()
+
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, fmt.Errorf("DeleteServer(%d) read body: %w", id, err)
+	}
+	c.debugLog("DeleteServer response: %s", string(raw))
+
+	// Unmarshal API envelope
+	var apiResp struct {
+		Result  string                   `json:"result"`
+		Message string                   `json:"message"`
+		Fields  map[string][]interface{} `json:"fields"`
+		Data    struct {
+			ID int `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &apiResp); err != nil {
+		return 0, fmt.Errorf("DeleteServer(%d) unmarshal: %w\nraw: %s", id, err, string(raw))
+	}
+
+	if apiResp.Result != "success" {
+		return 0, fmt.Errorf(
+			"API error deleting server %d: %s; details: %+v",
+			id, apiResp.Message, apiResp.Fields,
+		)
+	}
+	if apiResp.Data.ID == 0 {
+		return 0, fmt.Errorf("delete request returned zero job ID for server %d", id)
+	}
+
+	return apiResp.Data.ID, nil
 }
 
 // UnlinkServer external method on Client to unlink a billing package from a location
@@ -136,20 +183,57 @@ func (c *Client) UnlinkServer(id int) error {
 
 // StartServer external method on Client to boot up an instance
 func (c *Client) StartServer(id int) error {
-
-	if err := c.post("cloud/server/start/"+strconv.Itoa(id), nil, nil); err != nil {
-		return err
-	}
-
-	return nil
+	return c.post("cloud/server/start/"+strconv.Itoa(id), nil, nil)
 }
 
 // StopServer external method on Client to shut down an instance
 func (c *Client) StopServer(id int) error {
+	return c.post("cloud/server/shutdown/"+strconv.Itoa(id), nil, nil)
+}
 
-	if err := c.post("cloud/server/shutdown/"+strconv.Itoa(id), nil, nil); err != nil {
-		return err
+// Job represents the API's asynchronous job object.
+type Job struct {
+	ID       int    `json:"id"`
+	TSInsert string `json:"ts_insert"`
+	Command  string `json:"command"`
+	Status   int    `json:"status"`
+}
+
+// GetJob fetches a specific job for a server, returning its details.
+func (c *Client) GetJob(serverID, jobID int) (Job, error) {
+	var job Job
+	path := fmt.Sprintf("cloud/server/%d/jobs/%d/", serverID, jobID)
+	if err := c.get(path, &job); err != nil {
+		return Job{}, fmt.Errorf("failed to fetch job %d for server %d: %w", jobID, serverID, err)
 	}
+	return job, nil
+}
 
-	return nil
+// WaitForJob polls the given job until it matches the expected command and reaches status 5.
+func (c *Client) WaitForJob(serverID, jobID int, expectedCommand string) error {
+	const (
+		maxAttempts  = 200
+		intervalSecs = 5
+	)
+
+	for i := 0; i < maxAttempts; i++ {
+		job, err := c.GetJob(serverID, jobID)
+		if err != nil {
+			return fmt.Errorf("error polling job %d: %w", jobID, err)
+		}
+		if job.Command != expectedCommand {
+			return fmt.Errorf(
+				"job %d command mismatch: got %q, want %q",
+				jobID, job.Command, expectedCommand,
+			)
+		}
+		if job.Status == 5 {
+			return nil
+		}
+		time.Sleep(intervalSecs * time.Second)
+	}
+	return fmt.Errorf(
+		"timed out waiting for job %d (command %q) to reach status 5",
+		jobID, expectedCommand,
+	)
 }
