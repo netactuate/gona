@@ -121,8 +121,6 @@ func (c *Client) BuildServer(id int, r *BuildServerRequest) (b ServerBuild, err 
 	return b, nil
 }
 
-// DeleteServer sends a delete request, surfaces any API‐reported errors,
-// and returns the asynchronous job ID.
 func (c *Client) DeleteServer(id int, cancelBilling bool) (int, error) {
 	values := url.Values{}
 	values.Set("mbpkgid", fmt.Sprint(id))
@@ -131,7 +129,6 @@ func (c *Client) DeleteServer(id int, cancelBilling bool) (int, error) {
 	}
 	body := []byte(values.Encode())
 
-	// Build request manually to capture raw API errors
 	req, err := c.newRequest("POST", "cloud/server/delete", bytes.NewBuffer(body))
 	if err != nil {
 		return 0, fmt.Errorf("DeleteServer(%d) build request: %w", id, err)
@@ -150,7 +147,6 @@ func (c *Client) DeleteServer(id int, cancelBilling bool) (int, error) {
 	}
 	c.debugLog("DeleteServer response: %s", string(raw))
 
-	// Unmarshal API envelope
 	var apiResp struct {
 		Result  string                   `json:"result"`
 		Message string                   `json:"message"`
@@ -162,7 +158,6 @@ func (c *Client) DeleteServer(id int, cancelBilling bool) (int, error) {
 	if err := json.Unmarshal(raw, &apiResp); err != nil {
 		return 0, fmt.Errorf("DeleteServer(%d) unmarshal: %w\nraw: %s", id, err, string(raw))
 	}
-
 	if apiResp.Result != "success" {
 		return 0, fmt.Errorf(
 			"API error deleting server %d: %s; details: %+v",
@@ -172,7 +167,6 @@ func (c *Client) DeleteServer(id int, cancelBilling bool) (int, error) {
 	if apiResp.Data.ID == 0 {
 		return 0, fmt.Errorf("delete request returned zero job ID for server %d", id)
 	}
-
 	return apiResp.Data.ID, nil
 }
 
@@ -199,12 +193,12 @@ type Job struct {
 	Status   int    `json:"status"`
 }
 
-// GetJob fetches a specific job for a server, returning its details.
+// GetJob fetches a specific job for a server.
 func (c *Client) GetJob(serverID, jobID int) (Job, error) {
 	var job Job
 	path := fmt.Sprintf("cloud/server/%d/jobs/%d/", serverID, jobID)
 	if err := c.get(path, &job); err != nil {
-		return Job{}, fmt.Errorf("failed to fetch job %d for server %d: %w", jobID, serverID, err)
+		return Job{}, fmt.Errorf("GetJob(%d) for server %d: %w", jobID, serverID, err)
 	}
 	return job, nil
 }
