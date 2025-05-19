@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/google/go-querystring/query"
 )
@@ -73,6 +72,13 @@ type ServerBuild struct {
 	Build    int    `json:"build"`
 }
 
+// ServerBuild is a server creation response message.
+type RebuildServerBuild struct {
+	ServerID int    `json:"mbpkgid,string"`
+	Status   string `json:"status"`
+	Build    int    `json:"build"`
+}
+
 // CreateServer external method on Client to buy and build a new instance.
 func (c *Client) CreateServer(r *CreateServerRequest) (b ServerBuild, err error) {
 	values, err := query.Values(r)
@@ -106,7 +112,7 @@ type BuildServerRequest struct {
 }
 
 // BuildServer external method on Client to re-build an instance
-func (c *Client) BuildServer(id int, r *BuildServerRequest) (b ServerBuild, err error) {
+func (c *Client) BuildServer(id int, r *BuildServerRequest) (b RebuildServerBuild, err error) {
 	values, err := query.Values(r)
 	if err != nil {
 		return b, err
@@ -203,31 +209,3 @@ func (c *Client) GetJob(serverID, jobID int) (Job, error) {
 	return job, nil
 }
 
-// WaitForJob polls the given job until it matches the expected command and reaches status 5.
-func (c *Client) WaitForJob(serverID, jobID int, expectedCommand string) error {
-	const (
-		maxAttempts  = 200
-		intervalSecs = 5
-	)
-
-	for i := 0; i < maxAttempts; i++ {
-		job, err := c.GetJob(serverID, jobID)
-		if err != nil {
-			return fmt.Errorf("error polling job %d: %w", jobID, err)
-		}
-		if job.Command != expectedCommand {
-			return fmt.Errorf(
-				"job %d command mismatch: got %q, want %q",
-				jobID, job.Command, expectedCommand,
-			)
-		}
-		if job.Status == 5 {
-			return nil
-		}
-		time.Sleep(intervalSecs * time.Second)
-	}
-	return fmt.Errorf(
-		"timed out waiting for job %d (command %q) to reach status 5",
-		jobID, expectedCommand,
-	)
-}
