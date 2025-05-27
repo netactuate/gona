@@ -150,7 +150,6 @@ type apiResponse struct {
 	Fields  map[string]interface{} `json:"fields"`
 }
 
-// do internal method on Client struct for making the HTTP calls
 func (c *Client) do(req *http.Request, data interface{}) error {
 	resp, err := c.client.Do(req)
 	if err != nil {
@@ -171,17 +170,36 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 		return fmt.Errorf("could not unmarshal response %q: %w", string(body), err)
 	}
 
-  // Error Handling - This currently ignores invalid mbpkdgid errors to enable the Terraform Provider
+	// ─── special‐case ignore “The bgp id could not be found” ─────────────────────────
+	if (resp.StatusCode == 422 || r.Code == 422) && r.Fields != nil {
+		if msgs, ok := r.Fields["id"].([]interface{}); ok {
+			for _, m := range msgs {
+				if str, _ := m.(string); str == "The bgp id could not be found" {
+					return nil
+				}
+			}
+		}
+	}
+	// ────────────────────────────────────────────────────────────────────────────────
+
+	// Error Handling - This currently ignores invalid mbpkdgid errors to enable the Terraform Provider
 	if (resp.StatusCode == 422 || r.Code == 422) && (r.Fields != nil && r.Fields["mbpkgid"] == nil) {
 		fieldStr := ""
 		for key, value := range r.Fields {
 			fieldStr = fieldStr + fmt.Sprintf("%s: %v, ", key, value)
 		}
-		return fmt.Errorf("got an ERROR response on %s %s: code %d / %d, response: %s / %s", req.Method, req.URL, resp.StatusCode, r.Code, r.Message, fieldStr)
+		return fmt.Errorf(
+			"got an ERROR response on %s %s: code %d / %d, response: %s / %s",
+			req.Method, req.URL, resp.StatusCode, r.Code, r.Message, fieldStr,
+		)
 	}
 
-	if (resp.StatusCode != http.StatusOK && resp.StatusCode != 422) || (r.Code != http.StatusOK && r.Code != 422) {
-		return fmt.Errorf("got an error response on %s %s: code %d / %d, response: %s / %+v", req.Method, req.URL, resp.StatusCode, r.Code, r.Message, r.Data)
+	if (resp.StatusCode != http.StatusOK && resp.StatusCode != 422) ||
+		(r.Code != http.StatusOK && r.Code != 422) {
+		return fmt.Errorf(
+			"got an error response on %s %s: code %d / %d, response: %s / %+v",
+			req.Method, req.URL, resp.StatusCode, r.Code, r.Message, r.Data,
+		)
 	}
 
 	return nil
