@@ -2,7 +2,9 @@ package gona
 
 import "strconv"
 import (
-	"github.com/google/go-querystring/query"
+	//"github.com/google/go-querystring/query"
+    "bytes"
+    "encoding/json"
 )
 
 // Package struct stores the purchaced package values
@@ -19,7 +21,7 @@ type CancelRequest struct {
     DomUPackage *string `json:"domU_package,omitempty"`
     Comments    *string `json:"comments,omitempty"`
     CancelType  string  `json:"cancel_type"`
-    Agree       string  `json:"agree"`
+    Agree       int  `json:"agree"`
     Password    *string `json:"password,omitempty"`
 }
 
@@ -46,14 +48,21 @@ func (c *Client) GetPackage(id int) (pkg Package, err error) {
 }
 
 func (c *Client) CancelPackage(req *CancelRequest) (result interface{}, err error) {
-	values, err := query.Values(req)
-	if err != nil {
-		return nil, err
-	}
+    jsonBody, err := json.Marshal(req)
+    if err != nil {
+        return nil, err
+    }
+    //call with JSON in case not work properly
+    reqHTTP, err := c.newRequest("POST", "cloud/package/cancel/", bytes.NewBuffer(jsonBody))
+    if err != nil {
+        return nil, err
+    }
+    reqHTTP.Header.Set("Content-Type", "application/json")
 
-	if err := c.post("cloud/package/cancel/", []byte(values.Encode()), &result); err != nil {
-		return nil, err
-	}
+    result = make(map[string]interface{})
+    if err := c.do(reqHTTP, &result); err != nil {
+        return nil, err
+    }
 
-	return result, nil
+    return result, nil
 }

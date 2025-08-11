@@ -47,6 +47,7 @@ type MetalBuildStatus struct {
 type SingleMetal struct {
 	ID                 int     `json:"id"`
 	DatacenterID       int     `json:"datacenter_id"`
+	Canceling          int     `json:"canceling"`
 	MBPKGID            int     `json:"mbpkgid"`
 	Price              string  `json:"price"`
 	Hostname           string  `json:"hostname"`
