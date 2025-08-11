@@ -1,20 +1,23 @@
 package gona
 
-// Location is an API response message of available deployment locations
-type Location struct {
-	ID        int    `json:"id"`
-	Name      string `json:"name"`
-	IATACode  string `json:"iata_code"`
-	Continent string `json:"continent"`
-	Flag      string `json:"flat"`
-	Disabled  int    `json:"disabled"`
+import (
+// 	"net/url"
+// 	"strconv"
+//   "log"
+     "fmt"
+//	"github.com/google/go-querystring/query"
+)
+
+type Datacenter struct {
+    ID   int    `json:"id"`
+    Name string `json:"name"`
+    IATA string `json:"iata"`
 }
 
-// GetLocations public method on Client to get a list of locations
-func (c *Client) GetLocations() ([]Location, error) {
-	r := make([]Location, 0)
-	if err := c.get("cloud/locations", &r); err != nil {
-		return nil, err
+func (c *Client) GetDatacenterByIATA(iata string) (int, error) {
+	var resp Datacenter
+	if err := c.get(fmt.Sprintf("platform/datacenters-by-iata/%s", iata), &resp); err != nil {
+		return 0, err
 	}
-	return r, nil
+	return resp.ID, nil
 }
