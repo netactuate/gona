@@ -69,6 +69,7 @@ type CreateServerRequest struct {
 	CloudConfig              string `url:"cloud_config,omitempty"`
 	ScriptContent            string `url:"script_content,omitempty"`
 	Params     				 string `url:"params,omitempty"`
+	Tag                      string `url:"tag,omitempty"`
 }
 
 // ServerBuild is a server creation response message.
@@ -109,6 +110,7 @@ type BuildServerRequest struct {
 	CloudConfig              string `url:"cloud_config,omitempty"`
 	ScriptContent            string `url:"script_content,omitempty"`
 	Params     				 string `url:"params,omitempty"`
+	Tag                      string `url:"tag,omitempty"`
 }
 
 // BuildServer external method on Client to re-build an instance
