@@ -70,6 +70,7 @@ type CreateServerRequest struct {
 	ScriptContent            string `url:"script_content,omitempty"`
 	Params     				 string `url:"params,omitempty"`
 	Tag                      string `url:"tag,omitempty"`
+	TagList                  *[]string `url:"-"`
 }
 
 // ServerBuild is a server creation response message.
@@ -85,6 +86,15 @@ func (c *Client) CreateServer(r *CreateServerRequest) (b ServerBuild, err error)
 	if err != nil {
 		return b, err
 	}
+    if r.TagList != nil {
+        if len(*r.TagList) == 0 {
+            values.Add("tag_list[]", "")
+        } else {
+            for _, tag := range *r.TagList {
+                values.Add("tag_list[]", tag)
+            }
+        }
+    }
 	if values.Has("script_content") {
 		values.Add("script_type", "user-data")
 	}
@@ -110,7 +120,8 @@ type BuildServerRequest struct {
 	CloudConfig              string `url:"cloud_config,omitempty"`
 	ScriptContent            string `url:"script_content,omitempty"`
 	Params     				 string `url:"params,omitempty"`
-	Tag                      string `url:"tag,omitempty"`
+	Tag                      string `url:"-"`
+	TagList                  *[]string `url:"-"`
 }
 
 // BuildServer external method on Client to re-build an instance
@@ -119,6 +130,15 @@ func (c *Client) BuildServer(id int, r *BuildServerRequest) (b ServerBuild, err 
 	if err != nil {
 		return b, err
 	}
+    if r.TagList != nil {
+        if len(*r.TagList) == 0 {
+            values.Add("tag_list[]", "")
+        } else {
+            for _, tag := range *r.TagList {
+                values.Add("tag_list[]", tag)
+            }
+        }
+    }
 	if values.Has("script_content") {
 		values.Add("script_type", "user-data")
 	}
