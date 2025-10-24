@@ -76,7 +76,7 @@ func apiKeyPath(path, apiKey string) string {
 	return path + "?key=" + apiKey
 }
 
-func (c *Client) debugLog(format string, v ...any) {
+func (*Client) debugLog(format string, v ...any) {
 	if os.Getenv("NA_API_DEBUG") == "" {
 		return
 	}
@@ -84,7 +84,7 @@ func (c *Client) debugLog(format string, v ...any) {
 }
 
 // get internal method on Client struct for providing the HTTP GET call
-func (c *Client) get(ctx context.Context, path string, data interface{}) error {
+func (c *Client) get(ctx context.Context, path string, data any) error {
 	req, err := c.newRequest(ctx, "GET", path, nil)
 	if err != nil {
 		return err
@@ -93,7 +93,7 @@ func (c *Client) get(ctx context.Context, path string, data interface{}) error {
 }
 
 // post internal method on Client struct for providing the HTTP POST call
-func (c *Client) post(ctx context.Context, path string, values []byte, data interface{}) error {
+func (c *Client) post(ctx context.Context, path string, values []byte, data any) error {
 	c.debugLog("POST data for %s: %s", path, string(values))
 
 	req, err := c.newRequest(ctx, "POST", path, bytes.NewBuffer(values))
@@ -107,7 +107,7 @@ func (c *Client) post(ctx context.Context, path string, values []byte, data inte
 }
 
 // delete internal method on Client struct for providing the HTTP DELETE call
-func (c *Client) delete(ctx context.Context, path string, values url.Values, data interface{}) error {
+func (c *Client) delete(ctx context.Context, path string, _ url.Values, data any) error {
 	req, err := c.newRequest(ctx, "DELETE", path, nil)
 	if err != nil {
 		return err
@@ -144,15 +144,15 @@ func (c *Client) newRequest(ctx context.Context, method string, path string, bod
 // apiResponse is a message returned by the API that is used both for successful
 // responses and for some error responses.
 type apiResponse struct {
-	Result  string                 `json:"result"`
-	Message string                 `json:"message"`
-	Data    interface{}            `json:"data"`
-	Code    int                    `json:"code"`
-	Fields  map[string]interface{} `json:"fields"`
+	Result  string         `json:"result"`
+	Message string         `json:"message"`
+	Data    any            `json:"data"`
+	Code    int            `json:"code"`
+	Fields  map[string]any `json:"fields"`
 }
 
 // do internal method on Client struct for making the HTTP calls
-func (c *Client) do(req *http.Request, data interface{}) error {
+func (c *Client) do(req *http.Request, data any) error {
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return err
