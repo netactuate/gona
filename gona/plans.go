@@ -14,11 +14,11 @@ type Plan struct {
 }
 
 // GetPlans external method on Client to list available Plans
-func (c *Client) GetPlans() ([]Plan, error) {
+func (c *Client) GetPlans(ctx context.Context) ([]Plan, error) {
 
 	var planList []Plan
 
-	if err := c.get(context.Background(), "cloud/sizes", &planList); err != nil {
+	if err := c.get(ctx, "cloud/sizes", &planList); err != nil {
 		return nil, err
 	}
 

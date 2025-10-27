@@ -13,9 +13,9 @@ type Location struct {
 }
 
 // GetLocations public method on Client to get a list of locations
-func (c *Client) GetLocations() ([]Location, error) {
+func (c *Client) GetLocations(ctx context.Context) ([]Location, error) {
 	r := make([]Location, 0)
-	if err := c.get(context.Background(), "cloud/locations", &r); err != nil {
+	if err := c.get(ctx, "cloud/locations", &r); err != nil {
 		return nil, err
 	}
 	return r, nil

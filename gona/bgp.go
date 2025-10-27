@@ -54,9 +54,9 @@ func (s *BGPSession) IsProviderIPTypeV4() bool {
 }
 
 // GetBGPSession external method on Client to get your BGP session
-func (c *Client) GetBGPSession(id int) (*BGPSession, error) {
+func (c *Client) GetBGPSession(ctx context.Context, id int) (*BGPSession, error) {
 	var sessions *BGPSession
-	err := c.get(context.Background(), "bgp/bgpsession/"+strconv.Itoa(id), &sessions)
+	err := c.get(ctx, "bgp/bgpsession/"+strconv.Itoa(id), &sessions)
 	if err != nil {
 		return nil, err
 	}
@@ -65,10 +65,10 @@ func (c *Client) GetBGPSession(id int) (*BGPSession, error) {
 }
 
 // GetBGPSessions external method on Client to get BGP sessions
-func (c *Client) GetBGPSessions(mbPkgID int) ([]*BGPSession, error) {
+func (c *Client) GetBGPSessions(ctx context.Context, mbPkgID int) ([]*BGPSession, error) {
 	var allSessions []*BGPSession
 
-	err := c.get(context.Background(), "bgp/bgpsessions", &allSessions)
+	err := c.get(ctx, "bgp/bgpsessions", &allSessions)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (c *Client) GetBGPSessions(mbPkgID int) ([]*BGPSession, error) {
 		return nil, nil
 	}
 
-	ips, err := c.GetIPs(mbPkgID)
+	ips, err := c.GetIPs(ctx, mbPkgID)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,9 @@ func (c *Client) GetBGPSessions(mbPkgID int) ([]*BGPSession, error) {
 	for _, session := range allSessions {
 		_, exists := ipsMap[session.CustomerIP]
 		if exists {
-			ss, err := c.GetBGPSession(session.ID)
+			// TODO: Avoid artificial synchronization point by
+			//       fetching in parallel.
+			ss, err := c.GetBGPSession(ctx, session.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -109,7 +111,7 @@ type BGPCreateSessionsInput struct {
 	IPV6      int `json:"ipv6"`      // IPv6 Session
 }
 
-func (c *Client) CreateBGPSessions(mbPkgID int, groupID int, isIPV6 bool, redundant bool) (*BGPSession, error) {
+func (c *Client) CreateBGPSessions(ctx context.Context, mbPkgID int, groupID int, isIPV6 bool, redundant bool) (*BGPSession, error) {
 	values := make(url.Values)
 	values.Set("mbpkgid", fmt.Sprint(mbPkgID))
 	values.Set("group_id", fmt.Sprint(groupID))
@@ -121,14 +123,8 @@ func (c *Client) CreateBGPSessions(mbPkgID int, groupID int, isIPV6 bool, redund
 		values.Set("redundant", "1")
 	}
 
-	postData := []byte(values.Encode())
-	var err error
-	if err != nil {
-		return nil, fmt.Errorf("converting data to json: %w", err)
-	}
-
 	var sessions *BGPSession
-	if err := c.post(context.Background(), "bgp/bgpcreatesessions", postData, &sessions); err != nil {
+	if err := c.post(ctx, "bgp/bgpcreatesessions", []byte(values.Encode()), &sessions); err != nil {
 		return nil, fmt.Errorf("posting data: %w", err)
 	}
 

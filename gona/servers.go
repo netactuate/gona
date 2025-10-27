@@ -28,17 +28,17 @@ type Server struct {
 }
 
 // GetServers external method on Client to list your instances
-func (c *Client) GetServers() ([]Server, error) {
+func (c *Client) GetServers(ctx context.Context) ([]Server, error) {
 	var serverList []Server
-	if err := c.get(context.Background(), "cloud/servers", &serverList); err != nil {
+	if err := c.get(ctx, "cloud/servers", &serverList); err != nil {
 		return nil, err
 	}
 	return serverList, nil
 }
 
 // GetServer external method on Client to get an instance
-func (c *Client) GetServer(id int) (server Server, err error) {
-	if err := c.get(context.Background(), "cloud/server?mbpkgid="+strconv.Itoa(id), &server); err != nil {
+func (c *Client) GetServer(ctx context.Context, id int) (server Server, err error) {
+	if err := c.get(ctx, "cloud/server?mbpkgid="+strconv.Itoa(id), &server); err != nil {
 		return server, err
 	}
 	return server, nil
@@ -68,7 +68,7 @@ type ServerBuild struct {
 }
 
 // CreateServer external method on Client to buy and build a new instance.
-func (c *Client) CreateServer(r *CreateServerRequest) (b ServerBuild, err error) {
+func (c *Client) CreateServer(ctx context.Context, r *CreateServerRequest) (b ServerBuild, err error) {
 	values, err := query.Values(r)
 	if err != nil {
 		return b, err
@@ -77,7 +77,7 @@ func (c *Client) CreateServer(r *CreateServerRequest) (b ServerBuild, err error)
 		values.Add("script_type", "user-data")
 	}
 
-	if err := c.post(context.Background(), "cloud/server/buy_build", []byte(values.Encode()), &b); err != nil {
+	if err := c.post(ctx, "cloud/server/buy_build", []byte(values.Encode()), &b); err != nil {
 		return b, err
 	}
 
@@ -101,7 +101,7 @@ type BuildServerRequest struct {
 }
 
 // BuildServer external method on Client to re-build an instance
-func (c *Client) BuildServer(id int, r *BuildServerRequest) (b ServerBuild, err error) {
+func (c *Client) BuildServer(ctx context.Context, id int, r *BuildServerRequest) (b ServerBuild, err error) {
 	values, err := query.Values(r)
 	if err != nil {
 		return b, err
@@ -114,7 +114,7 @@ func (c *Client) BuildServer(id int, r *BuildServerRequest) (b ServerBuild, err 
 	//     values.Add("params", r.Params)
 	// }
 
-	if err := c.post(context.Background(), "cloud/server/build/"+strconv.Itoa(id), []byte(values.Encode()), &b); err != nil {
+	if err := c.post(ctx, "cloud/server/build/"+strconv.Itoa(id), []byte(values.Encode()), &b); err != nil {
 		return b, err
 	}
 
@@ -122,27 +122,27 @@ func (c *Client) BuildServer(id int, r *BuildServerRequest) (b ServerBuild, err 
 }
 
 // DeleteServer external method on Client to destroy an instance.
-func (c *Client) DeleteServer(id int, cancelBilling bool) error {
+func (c *Client) DeleteServer(ctx context.Context, id int, cancelBilling bool) error {
 	values := url.Values{}
 	if cancelBilling {
 		values.Add("cancel_billing", "1")
 	}
-	return c.post(context.Background(), "cloud/server/delete?mbpkgid="+strconv.Itoa(id), []byte(values.Encode()), nil)
+	return c.post(ctx, "cloud/server/delete?mbpkgid="+strconv.Itoa(id), []byte(values.Encode()), nil)
 }
 
 // UnlinkServer external method on Client to unlink a billing package from a location
-func (c *Client) UnlinkServer(id int) error {
-	return c.post(context.Background(), "cloud/server/unlink/"+strconv.Itoa(id), nil, nil)
+func (c *Client) UnlinkServer(ctx context.Context, id int) error {
+	return c.post(ctx, "cloud/server/unlink/"+strconv.Itoa(id), nil, nil)
 }
 
 // StartServer external method on Client to boot up an instance
-func (c *Client) StartServer(id int) error {
+func (c *Client) StartServer(ctx context.Context, id int) error {
 
-	return c.post(context.Background(), "cloud/server/start/"+strconv.Itoa(id), nil, nil)
+	return c.post(ctx, "cloud/server/start/"+strconv.Itoa(id), nil, nil)
 }
 
 // StopServer external method on Client to shut down an instance
-func (c *Client) StopServer(id int) error {
+func (c *Client) StopServer(ctx context.Context, id int) error {
 
-	return c.post(context.Background(), "cloud/server/shutdown/"+strconv.Itoa(id), nil, nil)
+	return c.post(ctx, "cloud/server/shutdown/"+strconv.Itoa(id), nil, nil)
 }

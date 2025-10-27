@@ -14,9 +14,9 @@ type OS struct {
 }
 
 // GetOSs returns a list of OS objects from the api
-func (c *Client) GetOSs() ([]OS, error) {
+func (c *Client) GetOSs(ctx context.Context) ([]OS, error) {
 	var osList []OS
-	if err := c.get(context.Background(), "cloud/images", &osList); err != nil {
+	if err := c.get(ctx, "cloud/images", &osList); err != nil {
 		return nil, err
 	}
 	return osList, nil
