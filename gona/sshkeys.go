@@ -15,29 +15,29 @@ type SSHKey struct {
 }
 
 // GetSSHKeys will list all SSH Keys installed for the account
-func (c *Client) GetSSHKeys() (keys []SSHKey, err error) {
+func (c *Client) GetSSHKeys(ctx context.Context) (keys []SSHKey, err error) {
 	var sshkeyList []SSHKey
-	if err := c.get(context.Background(), "account/ssh_keys", &sshkeyList); err != nil {
+	if err := c.get(ctx, "account/ssh_keys", &sshkeyList); err != nil {
 		return nil, err
 	}
 	return sshkeyList, nil
 }
 
 // GetSSHKey will list the information on a specific key
-func (c *Client) GetSSHKey(id int) (sshkey SSHKey, err error) {
-	if err := c.get(context.Background(), "account/ssh_key/"+strconv.Itoa(id), &sshkey); err != nil {
+func (c *Client) GetSSHKey(ctx context.Context, id int) (sshkey SSHKey, err error) {
+	if err := c.get(ctx, "account/ssh_key/"+strconv.Itoa(id), &sshkey); err != nil {
 		return SSHKey{}, err
 	}
 	return sshkey, nil
 }
 
 // CreateSSHKey creates a key
-func (c *Client) CreateSSHKey(name, key string) (sshkey SSHKey, err error) {
+func (c *Client) CreateSSHKey(ctx context.Context, name, key string) (sshkey SSHKey, err error) {
 	values := url.Values{}
 	values.Add("ssh_key", key)
 	values.Add("name", name)
 
-	if err := c.post(context.Background(), "account/ssh_key", []byte(values.Encode()), &sshkey); err != nil {
+	if err := c.post(ctx, "account/ssh_key", []byte(values.Encode()), &sshkey); err != nil {
 		return SSHKey{}, err
 	}
 
@@ -45,6 +45,6 @@ func (c *Client) CreateSSHKey(name, key string) (sshkey SSHKey, err error) {
 }
 
 // DeleteSSHKey deletes a key
-func (c *Client) DeleteSSHKey(id int) error {
-	return c.delete(context.Background(), "account/ssh_key/"+strconv.Itoa(id), nil, nil)
+func (c *Client) DeleteSSHKey(ctx context.Context, id int) error {
+	return c.delete(ctx, "account/ssh_key/"+strconv.Itoa(id), nil, nil)
 }

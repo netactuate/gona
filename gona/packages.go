@@ -16,11 +16,11 @@ type Package struct {
 
 // GetPackages external method on Client that returns a
 // list of Package object from the API
-func (c *Client) GetPackages() ([]Package, error) {
+func (c *Client) GetPackages(ctx context.Context) ([]Package, error) {
 
 	var packageList []Package
 
-	if err := c.get(context.Background(), "cloud/packages", &packageList); err != nil {
+	if err := c.get(ctx, "cloud/packages", &packageList); err != nil {
 		return nil, err
 	}
 
@@ -29,8 +29,8 @@ func (c *Client) GetPackages() ([]Package, error) {
 
 // GetPackage external method on Client that takes an id (int) as it's sole
 // argument and returns a single Package object
-func (c *Client) GetPackage(id int) (pkg Package, err error) {
-	if err := c.get(context.Background(), "/cloud/package/"+strconv.Itoa(id), &pkg); err != nil {
+func (c *Client) GetPackage(ctx context.Context, id int) (pkg Package, err error) {
+	if err := c.get(ctx, "/cloud/package/"+strconv.Itoa(id), &pkg); err != nil {
 		return Package{Installed: 0}, err
 	}
 	return pkg, nil
