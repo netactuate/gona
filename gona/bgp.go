@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -55,7 +56,7 @@ func (s *BGPSession) IsProviderIPTypeV4() bool {
 // GetBGPSession external method on Client to get your BGP session
 func (c *Client) GetBGPSession(id int) (*BGPSession, error) {
 	var sessions *BGPSession
-	err := c.get("bgp/bgpsession/"+strconv.Itoa(id), &sessions)
+	err := c.get(context.Background(), "bgp/bgpsession/"+strconv.Itoa(id), &sessions)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +68,7 @@ func (c *Client) GetBGPSession(id int) (*BGPSession, error) {
 func (c *Client) GetBGPSessions(mbPkgID int) ([]*BGPSession, error) {
 	var allSessions []*BGPSession
 
-	err := c.get("bgp/bgpsessions", &allSessions)
+	err := c.get(context.Background(), "bgp/bgpsessions", &allSessions)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +128,7 @@ func (c *Client) CreateBGPSessions(mbPkgID int, groupID int, isIPV6 bool, redund
 	}
 
 	var sessions *BGPSession
-	if err := c.post("bgp/bgpcreatesessions", postData, &sessions); err != nil {
+	if err := c.post(context.Background(), "bgp/bgpcreatesessions", postData, &sessions); err != nil {
 		return nil, fmt.Errorf("posting data: %w", err)
 	}
 

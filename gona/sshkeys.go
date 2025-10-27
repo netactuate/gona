@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"context"
 	"net/url"
 	"strconv"
 )
@@ -16,7 +17,7 @@ type SSHKey struct {
 // GetSSHKeys will list all SSH Keys installed for the account
 func (c *Client) GetSSHKeys() (keys []SSHKey, err error) {
 	var sshkeyList []SSHKey
-	if err := c.get("account/ssh_keys", &sshkeyList); err != nil {
+	if err := c.get(context.Background(), "account/ssh_keys", &sshkeyList); err != nil {
 		return nil, err
 	}
 	return sshkeyList, nil
@@ -24,7 +25,7 @@ func (c *Client) GetSSHKeys() (keys []SSHKey, err error) {
 
 // GetSSHKey will list the information on a specific key
 func (c *Client) GetSSHKey(id int) (sshkey SSHKey, err error) {
-	if err := c.get("account/ssh_key/"+strconv.Itoa(id), &sshkey); err != nil {
+	if err := c.get(context.Background(), "account/ssh_key/"+strconv.Itoa(id), &sshkey); err != nil {
 		return SSHKey{}, err
 	}
 	return sshkey, nil
@@ -36,7 +37,7 @@ func (c *Client) CreateSSHKey(name, key string) (sshkey SSHKey, err error) {
 	values.Add("ssh_key", key)
 	values.Add("name", name)
 
-	if err := c.post("account/ssh_key", []byte(values.Encode()), &sshkey); err != nil {
+	if err := c.post(context.Background(), "account/ssh_key", []byte(values.Encode()), &sshkey); err != nil {
 		return SSHKey{}, err
 	}
 
@@ -45,8 +46,5 @@ func (c *Client) CreateSSHKey(name, key string) (sshkey SSHKey, err error) {
 
 // DeleteSSHKey deletes a key
 func (c *Client) DeleteSSHKey(id int) error {
-	if err := c.delete("account/ssh_key/"+strconv.Itoa(id), nil, nil); err != nil {
-		return err
-	}
-	return nil
+	return c.delete(context.Background(), "account/ssh_key/"+strconv.Itoa(id), nil, nil)
 }

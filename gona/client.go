@@ -4,6 +4,7 @@ package gona
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -83,8 +84,8 @@ func (c *Client) debugLog(format string, v ...any) {
 }
 
 // get internal method on Client struct for providing the HTTP GET call
-func (c *Client) get(path string, data interface{}) error {
-	req, err := c.newRequest("GET", path, nil)
+func (c *Client) get(ctx context.Context, path string, data interface{}) error {
+	req, err := c.newRequest(ctx, "GET", path, nil)
 	if err != nil {
 		return err
 	}
@@ -92,10 +93,10 @@ func (c *Client) get(path string, data interface{}) error {
 }
 
 // post internal method on Client struct for providing the HTTP POST call
-func (c *Client) post(path string, values []byte, data interface{}) error {
+func (c *Client) post(ctx context.Context, path string, values []byte, data interface{}) error {
 	c.debugLog("POST data for %s: %s", path, string(values))
 
-	req, err := c.newRequest("POST", path, bytes.NewBuffer(values))
+	req, err := c.newRequest(ctx, "POST", path, bytes.NewBuffer(values))
 	if err != nil {
 		return err
 	}
@@ -106,8 +107,8 @@ func (c *Client) post(path string, values []byte, data interface{}) error {
 }
 
 // delete internal method on Client struct for providing the HTTP DELETE call
-func (c *Client) delete(path string, values url.Values, data interface{}) error {
-	req, err := c.newRequest("DELETE", path, nil)
+func (c *Client) delete(ctx context.Context, path string, values url.Values, data interface{}) error {
+	req, err := c.newRequest(ctx, "DELETE", path, nil)
 	if err != nil {
 		return err
 	}
@@ -117,7 +118,7 @@ func (c *Client) delete(path string, values url.Values, data interface{}) error 
 // Two functions (newRequest, do) below are used by the http method name functions above
 // newRequest internal method on Client struct to be wrapped inside the above http method
 // named functions for doing the actual work of the get/post/put/patch/delete methods
-func (c *Client) newRequest(method string, path string, body io.Reader) (*http.Request, error) {
+func (c *Client) newRequest(ctx context.Context, method string, path string, body io.Reader) (*http.Request, error) {
 	relPath, err := url.Parse(apiKeyPath(path, c.apiKey))
 
 	if err != nil {
@@ -127,7 +128,7 @@ func (c *Client) newRequest(method string, path string, body io.Reader) (*http.R
 
 	url := c.endPoint.ResolveReference(relPath)
 
-	req, err := http.NewRequest(method, url.String(), body)
+	req, err := http.NewRequestWithContext(ctx, method, url.String(), body)
 	if err != nil {
 		return nil, err
 

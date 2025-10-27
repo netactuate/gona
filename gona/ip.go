@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"context"
 	"strconv"
 
 	"inet.af/netaddr"
@@ -48,7 +49,7 @@ func (ips *IPs) GetIPsMap() *map[string]IPType {
 
 // GetIPs returns a list of IPs for the selected mbPkgID from the API
 func (c *Client) GetIPs(mbPkgID int) (ips IPs, err error) {
-	if err := c.get("cloud/networkips/"+strconv.Itoa(mbPkgID), &ips); err != nil {
+	if err := c.get(context.Background(), "cloud/networkips/"+strconv.Itoa(mbPkgID), &ips); err != nil {
 		return IPs{}, err
 	}
 
