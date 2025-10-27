@@ -1,5 +1,7 @@
 package gona
 
+import "context"
+
 // Plan struct defines the purchaceable plans/packages
 type Plan struct {
 	ID        int    `json:"plan_id,string"`
@@ -16,7 +18,7 @@ func (c *Client) GetPlans() ([]Plan, error) {
 
 	var planList []Plan
 
-	if err := c.get("cloud/sizes", &planList); err != nil {
+	if err := c.get(context.Background(), "cloud/sizes", &planList); err != nil {
 		return nil, err
 	}
 
