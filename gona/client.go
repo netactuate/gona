@@ -84,8 +84,8 @@ func (c *Client) debugLog(format string, v ...any) {
 }
 
 // get internal method on Client struct for providing the HTTP GET call
-func (c *Client) get(path string, data interface{}) error {
-	req, err := c.newRequest(context.Background(), "GET", path, nil)
+func (c *Client) get(ctx context.Context, path string, data interface{}) error {
+	req, err := c.newRequest(ctx, "GET", path, nil)
 	if err != nil {
 		return err
 	}
@@ -93,10 +93,10 @@ func (c *Client) get(path string, data interface{}) error {
 }
 
 // post internal method on Client struct for providing the HTTP POST call
-func (c *Client) post(path string, values []byte, data interface{}) error {
+func (c *Client) post(ctx context.Context, path string, values []byte, data interface{}) error {
 	c.debugLog("POST data for %s: %s", path, string(values))
 
-	req, err := c.newRequest(context.Background(), "POST", path, bytes.NewBuffer(values))
+	req, err := c.newRequest(ctx, "POST", path, bytes.NewBuffer(values))
 	if err != nil {
 		return err
 	}
@@ -107,8 +107,8 @@ func (c *Client) post(path string, values []byte, data interface{}) error {
 }
 
 // delete internal method on Client struct for providing the HTTP DELETE call
-func (c *Client) delete(path string, values url.Values, data interface{}) error {
-	req, err := c.newRequest(context.Background(), "DELETE", path, nil)
+func (c *Client) delete(ctx context.Context, path string, values url.Values, data interface{}) error {
+	req, err := c.newRequest(ctx, "DELETE", path, nil)
 	if err != nil {
 		return err
 	}
