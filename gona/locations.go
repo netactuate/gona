@@ -8,7 +8,7 @@ type Location struct {
 	Name      string `json:"name"`
 	IATACode  string `json:"iata_code"`
 	Continent string `json:"continent"`
-	Flag      string `json:"flat"`
+	Flag      string `json:"flag"`
 	Disabled  int    `json:"disabled"`
 }
 
