@@ -51,3 +51,17 @@ func TestCloudPool_RoundTrip(t *testing.T) {
 		}
 	}
 }
+
+func TestInvalidPoolString(t *testing.T) {
+	// Test that invalid pool values have sensible Name() output
+	invalidPool := CloudPool(42)
+	if invalidPool.Name() != "Unknown" {
+		t.Errorf("CloudPool(42).Name() = %s, want Unknown", invalidPool.Name())
+	}
+
+	// Test CloudPoolFromName with invalid input
+	result := CloudPoolFromName("invalid pool name")
+	if result != CloudPoolDefault {
+		t.Errorf("CloudPoolFromName(\"invalid pool name\") = %d, want %d", result, CloudPoolDefault)
+	}
+}
