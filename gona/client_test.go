@@ -10,6 +10,15 @@ import (
 	"testing"
 )
 
+// mockAPIResponse creates an apiResponse with the given data
+func mockAPIResponse(data any) apiResponse {
+	return apiResponse{
+		Result: "success",
+		Data:   data,
+		Code:   http.StatusOK,
+	}
+}
+
 func TestNewClient(t *testing.T) {
 	apiKey := "test-api-key"
 	client := NewClient(apiKey)
@@ -111,12 +120,9 @@ func TestClient_Get(t *testing.T) {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(apiResponse{
-			Result:  "success",
-			Message: "",
-			Data:    map[string]string{"test": "data"},
-			Code:    http.StatusOK,
-		})
+		json.NewEncoder(w).Encode(
+			mockAPIResponse(map[string]string{"test": "data"}),
+		)
 	}))
 	defer server.Close()
 
@@ -169,7 +175,6 @@ func TestClient_ErrorHandling(t *testing.T) {
 		"success 200": {
 			statusCode: http.StatusOK,
 			response:   apiResponse{Result: "success", Code: http.StatusOK},
-			wantErr:    false,
 		},
 		"error 500": {
 			statusCode: http.StatusInternalServerError,
@@ -184,7 +189,6 @@ func TestClient_ErrorHandling(t *testing.T) {
 		"422 with mbpkgid ignored": {
 			statusCode: 422,
 			response:   apiResponse{Result: "error", Code: 422, Fields: map[string]any{"mbpkgid": "invalid"}},
-			wantErr:    false,
 		},
 	}
 
