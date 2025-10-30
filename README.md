@@ -114,14 +114,14 @@ type BGPSession struct {
     GroupID        int         `json:"group_id"`
     Locked         int         `json:"locked"`
     Description    string      `json:"description"`
-    State          interface{} `json:"state"`
-    RoutesReceived interface{} `json:"routes_received"`
-    LastUpdate     interface{} `json:"last_update"`
+    State          any         `json:"state"`
+    RoutesReceived any         `json:"routes_received"`
+    LastUpdate     any         `json:"last_update"`
     ConfigStatus   int         `json:"config_status"`
-    Password       interface{} `json:"password"`
+    Password       any         `json:"password"`
     Prefixes       []Prefix    `json:"prefixes"`
     ExportList     string      `json:"export_list"`
-    Community      interface{} `json:"community"`
+    Community      any         `json:"community"`
     ProviderPeerIP string      `json:"provider_peer_ip"`
     Location       string      `json:"location"`
     Latitude       string      `json:"latitude"`
@@ -601,7 +601,7 @@ type Prefix struct {
     ID          int         `json:"id"`
     MbID        int         `json:"mb_id"`
     Prefix      string      `json:"prefix"`
-    Append      interface{} `json:"append"`
+    Append      any         `json:"append"`
     RuleType    string      `json:"rule_type"`
     PrefixType  string      `json:"prefix_type"`
     Description string      `json:"description"`
