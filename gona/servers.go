@@ -25,6 +25,7 @@ type Server struct {
 	ServerStatus             string `json:"status"`
 	PowerStatus              string `json:"state"`
 	Installed                int    `json:"installed"`
+	CloudPool                string `json:"cloud_pool_name"`
 }
 
 // GetServers external method on Client to list your instances
@@ -58,6 +59,8 @@ type CreateServerRequest struct {
 	CloudConfig              string `url:"cloud_config,omitempty"`
 	ScriptContent            string `url:"script_content,omitempty"`
 	Params                   string `url:"params,omitempty"`
+
+	CloudPool CloudPool `url:"cloud_pool_id,omitempty"`
 }
 
 // ServerBuild is a server creation response message.
