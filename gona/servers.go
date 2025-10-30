@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"context"
 	"net/url"
 	"strconv"
 
@@ -29,7 +30,7 @@ type Server struct {
 // GetServers external method on Client to list your instances
 func (c *Client) GetServers() ([]Server, error) {
 	var serverList []Server
-	if err := c.get("cloud/servers", &serverList); err != nil {
+	if err := c.get(context.Background(), "cloud/servers", &serverList); err != nil {
 		return nil, err
 	}
 	return serverList, nil
@@ -37,7 +38,7 @@ func (c *Client) GetServers() ([]Server, error) {
 
 // GetServer external method on Client to get an instance
 func (c *Client) GetServer(id int) (server Server, err error) {
-	if err := c.get("cloud/server?mbpkgid="+strconv.Itoa(id), &server); err != nil {
+	if err := c.get(context.Background(), "cloud/server?mbpkgid="+strconv.Itoa(id), &server); err != nil {
 		return server, err
 	}
 	return server, nil
@@ -76,7 +77,7 @@ func (c *Client) CreateServer(r *CreateServerRequest) (b ServerBuild, err error)
 		values.Add("script_type", "user-data")
 	}
 
-	if err := c.post("cloud/server/buy_build", []byte(values.Encode()), &b); err != nil {
+	if err := c.post(context.Background(), "cloud/server/buy_build", []byte(values.Encode()), &b); err != nil {
 		return b, err
 	}
 
@@ -113,7 +114,7 @@ func (c *Client) BuildServer(id int, r *BuildServerRequest) (b ServerBuild, err 
     //     values.Add("params", r.Params)
     // }
 
-	if err := c.post("cloud/server/build/"+strconv.Itoa(id), []byte(values.Encode()), &b); err != nil {
+	if err := c.post(context.Background(), "cloud/server/build/"+strconv.Itoa(id), []byte(values.Encode()), &b); err != nil {
 		return b, err
 	}
 
@@ -126,30 +127,22 @@ func (c *Client) DeleteServer(id int, cancelBilling bool) error {
 	if cancelBilling {
 		values.Add("cancel_billing", "1")
 	}
-	return c.post("cloud/server/delete?mbpkgid="+strconv.Itoa(id), []byte(values.Encode()), nil)
+	return c.post(context.Background(), "cloud/server/delete?mbpkgid="+strconv.Itoa(id), []byte(values.Encode()), nil)
 }
 
 // UnlinkServer external method on Client to unlink a billing package from a location
 func (c *Client) UnlinkServer(id int) error {
-	return c.post("cloud/server/unlink/"+strconv.Itoa(id), nil, nil)
+	return c.post(context.Background(), "cloud/server/unlink/"+strconv.Itoa(id), nil, nil)
 }
 
 // StartServer external method on Client to boot up an instance
 func (c *Client) StartServer(id int) error {
 
-	if err := c.post("cloud/server/start/"+strconv.Itoa(id), nil, nil); err != nil {
-		return err
-	}
-
-	return nil
+	return c.post(context.Background(), "cloud/server/start/"+strconv.Itoa(id), nil, nil)
 }
 
 // StopServer external method on Client to shut down an instance
 func (c *Client) StopServer(id int) error {
 
-	if err := c.post("cloud/server/shutdown/"+strconv.Itoa(id), nil, nil); err != nil {
-		return err
-	}
-
-	return nil
+	return c.post(context.Background(), "cloud/server/shutdown/"+strconv.Itoa(id), nil, nil)
 }
