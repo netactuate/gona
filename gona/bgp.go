@@ -8,41 +8,41 @@ import (
 )
 
 type BGPSession struct {
-	ID             int         `json:"id"`
-	CustomerIP     string      `json:"customer_peer_ip"`
-	GroupID        int         `json:"group_id"`
-	Locked         int         `json:"locked"`
-	Description    string      `json:"description"`
-	State          interface{} `json:"state"`
-	RoutesReceived interface{} `json:"routes_received"`
-	LastUpdate     interface{} `json:"last_update"`
-	ConfigStatus   int         `json:"config_status"`
-	Password       interface{} `json:"password"`
-	Prefixes       []Prefix    `json:"prefixes"`
-	ExportList     string      `json:"export_list"`
-	Community      interface{} `json:"community"`
-	ProviderPeerIP string      `json:"provider_peer_ip"`
-	Location       string      `json:"location"`
-	Latitude       string      `json:"latitude"`
-	Longitude      string      `json:"longitude"`
-	GroupName      string      `json:"group_name"`
-	ProviderIPType string      `json:"provider_ip_type"`
-	ProviderAsn    int         `json:"provider_asn,string"`
-	CustomerAsn    int         `json:"customer_asn,string"`
+	ID             int      `json:"id"`
+	CustomerIP     string   `json:"customer_peer_ip"`
+	GroupID        int      `json:"group_id"`
+	Locked         int      `json:"locked"`
+	Description    string   `json:"description"`
+	State          any      `json:"state"`
+	RoutesReceived any      `json:"routes_received"`
+	LastUpdate     any      `json:"last_update"`
+	ConfigStatus   int      `json:"config_status"`
+	Password       any      `json:"password"`
+	Prefixes       []Prefix `json:"prefixes"`
+	ExportList     string   `json:"export_list"`
+	Community      any      `json:"community"`
+	ProviderPeerIP string   `json:"provider_peer_ip"`
+	Location       string   `json:"location"`
+	Latitude       string   `json:"latitude"`
+	Longitude      string   `json:"longitude"`
+	GroupName      string   `json:"group_name"`
+	ProviderIPType string   `json:"provider_ip_type"`
+	ProviderAsn    int      `json:"provider_asn,string"`
+	CustomerAsn    int      `json:"customer_asn,string"`
 }
 
 type Prefix struct {
-	ID          int         `json:"id"`
-	MbID        int         `json:"mb_id"`
-	Prefix      string      `json:"prefix"`
-	Append      interface{} `json:"append"`
-	RuleType    string      `json:"rule_type"`
-	PrefixType  string      `json:"prefix_type"`
-	Description string      `json:"description"`
-	Date        string      `json:"date"`
-	AllowedPps  int         `json:"allowed_pps"`
-	BgpGroupID  int         `json:"bgp_group_id"`
-	PrefixID    int         `json:"prefix_id"`
+	ID          int    `json:"id"`
+	MbID        int    `json:"mb_id"`
+	Prefix      string `json:"prefix"`
+	Append      any    `json:"append"`
+	RuleType    string `json:"rule_type"`
+	PrefixType  string `json:"prefix_type"`
+	Description string `json:"description"`
+	Date        string `json:"date"`
+	AllowedPps  int    `json:"allowed_pps"`
+	BgpGroupID  int    `json:"bgp_group_id"`
+	PrefixID    int    `json:"prefix_id"`
 }
 
 func (s *BGPSession) IsLocked() bool {
