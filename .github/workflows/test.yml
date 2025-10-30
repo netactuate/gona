@@ -4,8 +4,6 @@ on:
     branches:
       - master
   pull_request:
-    branches:
-      - master
   workflow_dispatch:
 
 jobs:
@@ -32,6 +30,9 @@ jobs:
         run: go mod tidy
       - name: Run tests
         run: go test -v -coverprofile=cover.out ./... -covermode=atomic -coverpkg=./...
+      - name: Fixup coverage profile
+        run: |
+          sed -e 's#github.com/netactuate/gona#github.com/${{ github.repository }}#g' cover.out > tmpfile && mv tmpfile cover.out
       - name: Archive code coverage results
         uses: actions/upload-artifact@v5
         with:
