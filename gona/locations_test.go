@@ -167,6 +167,206 @@ func TestGetLocations_ErrorResponse(t *testing.T) {
 	}
 }
 
+func TestGetLocationForPool(t *testing.T) {
+	tests := map[string]struct {
+		pool           CloudPool
+		mockResponse   any
+		mockStatusCode int
+		wantErr        bool
+		wantLocations  []Location
+		wantQueryParam string
+	}{
+		"general compute pool": {
+			pool: CloudPoolGeneralCompute,
+			mockResponse: []Location{
+				{
+					ID:        1,
+					Name:      "Los Angeles",
+					IATACode:  "LAX",
+					Continent: "North America",
+					Flag:      "us",
+					Disabled:  0,
+				},
+				{
+					ID:        2,
+					Name:      "Amsterdam",
+					IATACode:  "AMS",
+					Continent: "Europe",
+					Flag:      "nl",
+					Disabled:  0,
+				},
+			},
+			mockStatusCode: http.StatusOK,
+			wantLocations: []Location{
+				{
+					ID:        1,
+					Name:      "Los Angeles",
+					IATACode:  "LAX",
+					Continent: "North America",
+					Flag:      "us",
+				},
+				{
+					ID:        2,
+					Name:      "Amsterdam",
+					IATACode:  "AMS",
+					Continent: "Europe",
+					Flag:      "nl",
+				},
+			},
+			wantQueryParam: "1",
+		},
+		"AMD EPYC pool": {
+			pool: CloudPoolAMDEPYC,
+			mockResponse: []Location{
+				{
+					ID:        5,
+					Name:      "Dallas",
+					IATACode:  "DFW",
+					Continent: "North America",
+					Flag:      "us",
+					Disabled:  0,
+				},
+			},
+			mockStatusCode: http.StatusOK,
+			wantLocations: []Location{
+				{
+					ID:        5,
+					Name:      "Dallas",
+					IATACode:  "DFW",
+					Continent: "North America",
+					Flag:      "us",
+					Disabled:  0,
+				},
+			},
+			wantQueryParam: "9",
+		},
+		"pool with no locations": {
+			pool:           CloudPoolGeneralCompute,
+			mockResponse:   []Location{},
+			mockStatusCode: http.StatusOK,
+			wantLocations:  []Location{},
+			wantQueryParam: "1",
+		},
+	}
+
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			// Create mock server
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Verify the request path
+				if r.URL.Path != "/api/cloud/locations" {
+					t.Errorf("Expected path /api/cloud/locations, got %s", r.URL.Path)
+				}
+
+				// Verify API key is present
+				if !r.URL.Query().Has("key") {
+					t.Error("Expected API key in query parameters")
+				}
+
+				// Verify cloud_pool_id parameter
+				cloudPoolID := r.URL.Query().Get("cloud_pool_id")
+				if cloudPoolID != tt.wantQueryParam {
+					t.Errorf("Expected cloud_pool_id=%s, got %s", tt.wantQueryParam, cloudPoolID)
+				}
+
+				// Send mock response
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(tt.mockStatusCode)
+				resp := mockAPIResponse(tt.mockResponse)
+				json.NewEncoder(w).Encode(resp)
+			}))
+			defer server.Close()
+
+			// Create client with mock server URL
+			client := NewClientCustom("test-api-key", server.URL+"/api/")
+
+			// Call GetLocationForPool
+			ctx := context.Background()
+			locations, err := client.GetLocationForPool(ctx, tt.pool)
+
+			// Check error
+			if (err != nil) != tt.wantErr {
+				t.Errorf("GetLocationForPool() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			// Check result
+			if !tt.wantErr {
+				if len(locations) != len(tt.wantLocations) {
+					t.Errorf("GetLocationForPool() returned %d locations, want %d", len(locations), len(tt.wantLocations))
+					return
+				}
+				for i, loc := range locations {
+					t.Run(fmt.Sprint("location", i), func(t *testing.T) {
+						checkLocation(t, loc, tt.wantLocations[i])
+					})
+				}
+			}
+		})
+	}
+}
+
+func TestGetLocationForPool_ErrorResponse(t *testing.T) {
+	// Create mock server that returns an error
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		resp := apiResponse{
+			Result:  "error",
+			Message: "Unauthorized",
+			Data:    nil,
+			Code:    http.StatusUnauthorized,
+			Fields:  nil,
+		}
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	// Create client with mock server URL
+	client := NewClientCustom("invalid-api-key", server.URL+"/api/")
+
+	// Call GetLocationForPool
+	ctx := context.Background()
+	locations, err := client.GetLocationForPool(ctx, CloudPoolGeneralCompute)
+
+	// Should return an error
+	if err == nil {
+		t.Error("GetLocationForPool() expected error for 401 response, got nil")
+	}
+
+	// Locations should be nil on error
+	if locations != nil {
+		t.Errorf("GetLocationForPool() expected nil locations on error, got %v", locations)
+	}
+}
+
+func TestGetLocationForPool_WithContext(t *testing.T) {
+	// Create a mock server with a delay
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify context was propagated by checking if request has context
+		if r.Context() == nil {
+			t.Error("Expected request to have context")
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		resp := mockAPIResponse([]Location{})
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	// Create client
+	client := NewClientCustom("test-api-key", server.URL+"/api/")
+
+	// Call with custom context
+	ctx := context.WithValue(context.Background(), "test", "value")
+	_, err := client.GetLocationForPool(ctx, CloudPoolGeneralCompute)
+
+	if err != nil {
+		t.Errorf("GetLocationForPool() unexpected error: %v", err)
+	}
+}
+
 func TestLocation_JSONSerialization(t *testing.T) {
 	location := Location{
 		ID:        1,
