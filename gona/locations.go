@@ -2,6 +2,7 @@ package gona
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/go-querystring/query"
 )
@@ -27,6 +28,12 @@ func (c *Client) GetLocations(ctx context.Context) ([]Location, error) {
 
 // GetLocationsForPool specifies locations that are valid for a given CloudPool
 func (c *Client) GetLocationForPool(ctx context.Context, pool CloudPool) ([]Location, error) {
+	switch pool {
+	case CloudPoolAMDEPYC, CloudPoolGeneralCompute:
+		// Valid.
+	default:
+		return nil, fmt.Errorf("invalid cloud pool specified: %v", pool.Name())
+	}
 	values, err := query.Values(struct {
 		CloudPoolID CloudPool `url:"cloud_pool_id"`
 	}{

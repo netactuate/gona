@@ -340,30 +340,51 @@ func TestGetLocationForPool_ErrorResponse(t *testing.T) {
 	}
 }
 
-func TestGetLocationForPool_WithContext(t *testing.T) {
-	// Create a mock server with a delay
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify context was propagated by checking if request has context
-		if r.Context() == nil {
-			t.Error("Expected request to have context")
-		}
+func TestGetLocationForPool_InvalidPool(t *testing.T) {
+	tests := map[string]struct {
+		pool             CloudPool
+		wantErrorMessage string
+	}{
+		"unknown pool value zero (UNKNOWN)": {
+			pool:             CloudPoolDefault,
+			wantErrorMessage: "invalid cloud pool specified: Default",
+		},
+		"unknown pool value 99": {
+			pool:             CloudPool(99),
+			wantErrorMessage: "invalid cloud pool specified: Unknown",
+		},
+		"unknown pool value 255": {
+			pool:             CloudPool(255),
+			wantErrorMessage: "invalid cloud pool specified: Unknown",
+		},
+	}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		resp := mockAPIResponse([]Location{})
-		json.NewEncoder(w).Encode(resp)
-	}))
-	defer server.Close()
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			// Create client with mock server URL (won't be called due to validation)
+			// We don't need a real server because validation happens before the API call
+			client := NewClientCustom("test-api-key", "http://invalid-url/api/")
 
-	// Create client
-	client := NewClientCustom("test-api-key", server.URL+"/api/")
+			// Call GetLocationForPool with invalid pool
+			ctx := context.Background()
+			locations, err := client.GetLocationForPool(ctx, tt.pool)
 
-	// Call with custom context
-	ctx := context.WithValue(context.Background(), "test", "value")
-	_, err := client.GetLocationForPool(ctx, CloudPoolGeneralCompute)
+			// Check error expectation
+			if err == nil {
+				t.Error("GetLocationForPool() error = nil")
+				return
+			}
 
-	if err != nil {
-		t.Errorf("GetLocationForPool() unexpected error: %v", err)
+			// Check error message
+			if err.Error() != tt.wantErrorMessage {
+				t.Errorf("GetLocationForPool() error message = %q, want %q", err.Error(), tt.wantErrorMessage)
+			}
+
+			// If error expected, ensure locations is nil
+			if locations != nil {
+				t.Errorf("GetLocationForPool() expected nil locations on error, got %v", locations)
+			}
+		})
 	}
 }
 
