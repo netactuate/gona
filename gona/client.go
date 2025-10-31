@@ -51,7 +51,10 @@ func NewClientCustom(apikey string, apiurl string) *Client {
 	}
 	client := http.DefaultClient
 	client.Transport = transport
-	endpoint, _ := url.Parse(apiurl)
+	endpoint, err := url.Parse(apiurl)
+	if err != nil {
+		panic(fmt.Sprintf("invalid API URL: %v", err))
+	}
 
 	return &Client{
 		userAgent: useragent,
@@ -171,7 +174,7 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 		return fmt.Errorf("could not unmarshal response %q: %w", string(body), err)
 	}
 
-  // Error Handling - This currently ignores invalid mbpkdgid errors to enable the Terraform Provider
+	// Error Handling - This currently ignores invalid mbpkdgid errors to enable the Terraform Provider
 	if (resp.StatusCode == 422 || r.Code == 422) && (r.Fields != nil && r.Fields["mbpkgid"] == nil) {
 		fieldStr := ""
 		for key, value := range r.Fields {
