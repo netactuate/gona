@@ -45,13 +45,13 @@ func GetKeyFromEnv() string {
 // and returns the Client struct ready to talk to the API
 func NewClientCustom(apikey string, apiurl string) *Client {
 	useragent := "gona/" + Version
-	transport := &http.Transport{
-		TLSNextProto: make(
-			map[string]func(string, *tls.Conn) http.RoundTripper,
-		),
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSNextProto: make(
+				map[string]func(string, *tls.Conn) http.RoundTripper,
+			),
+		},
 	}
-	client := http.DefaultClient
-	client.Transport = transport
 	endpoint, _ := url.Parse(apiurl)
 
 	return &Client{
