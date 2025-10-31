@@ -44,13 +44,13 @@ func GetKeyFromEnv() string {
 // and returns the Client struct ready to talk to the API
 func NewClientCustom(apikey string, apiurl string) *Client {
 	useragent := "gona/" + Version
-	transport := &http.Transport{
-		TLSNextProto: make(
-			map[string]func(string, *tls.Conn) http.RoundTripper,
-		),
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSNextProto: make(
+				map[string]func(string, *tls.Conn) http.RoundTripper,
+			),
+		},
 	}
-	client := http.DefaultClient
-	client.Transport = transport
 	endpoint, _ := url.Parse(apiurl)
 
 	return &Client{
@@ -171,7 +171,7 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 		return fmt.Errorf("could not unmarshal response %q: %w", string(body), err)
 	}
 
-  // Error Handling - This currently ignores invalid mbpkdgid errors to enable the Terraform Provider
+	// Error Handling - This currently ignores invalid mbpkdgid errors to enable the Terraform Provider
 	if (resp.StatusCode == 422 || r.Code == 422) && (r.Fields != nil && r.Fields["mbpkgid"] == nil) {
 		fieldStr := ""
 		for key, value := range r.Fields {
