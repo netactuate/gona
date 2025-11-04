@@ -31,9 +31,11 @@ jobs:
       - name: Run tests
         run: go test -v -coverprofile=cover.out ./... -covermode=atomic -coverpkg=./...
       - name: Fixup coverage profile
+        if: matrix.go == 'stable'
         run: |
           sed -e 's#github.com/netactuate/gona#github.com/${{ github.repository }}#g' cover.out > tmpfile && mv tmpfile cover.out
       - name: Archive code coverage results
+        if: matrix.go == 'stable'
         uses: actions/upload-artifact@v5
         with:
           name: code-coverage-${{ matrix.go }}
