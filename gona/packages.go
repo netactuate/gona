@@ -30,7 +30,7 @@ func (c *Client) GetPackages(ctx context.Context) ([]Package, error) {
 // GetPackage external method on Client that takes an id (int) as it's sole
 // argument and returns a single Package object
 func (c *Client) GetPackage(ctx context.Context, id int) (pkg Package, err error) {
-	if err := c.get(ctx, "/cloud/package/"+strconv.Itoa(id), &pkg); err != nil {
+	if err := c.get(ctx, "cloud/package/"+strconv.Itoa(id), &pkg); err != nil {
 		return Package{Installed: 0}, err
 	}
 	return pkg, nil
