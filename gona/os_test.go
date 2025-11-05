@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -15,13 +16,15 @@ func TestGetOSs(t *testing.T) {
 		{ID: 2, Os: "Debian 12", Type: "linux", Subtype: "debian", Size: "8GB", Bits: "64", Tech: "kvm"},
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		payload := slices.Clone(expected)
+		slices.Reverse(payload)
 		if r.URL.Path != "/api/cloud/images" {
 			t.Errorf("Expected path /api/cloud/images, got %s", r.URL.Path)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(mockAPIResponse(expected))
+		json.NewEncoder(w).Encode(mockAPIResponse(payload))
 	}))
 	defer server.Close()
 
@@ -37,6 +40,9 @@ func TestGetOSs(t *testing.T) {
 		t.Errorf("GetOSs() returned %d OSs, want 2", len(osList))
 	}
 
+	slices.SortStableFunc(osList, func(a, b OS) int {
+		return cmp.Compare(a.ID, b.ID)
+	})
 	if !slices.Equal(expected, osList) {
 		t.Errorf("GetOSs() = %v, want %v", osList, expected)
 	}

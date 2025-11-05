@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -15,13 +16,15 @@ func TestGetPlans(t *testing.T) {
 		{ID: 2, Name: "Medium", RAM: "4GB", Disk: "80GB", Transfer: "4TB", Price: "20.00", Available: "1"},
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		payload := slices.Clone(expectedPlans)
+		slices.Reverse(payload)
 		if r.URL.Path != "/api/cloud/sizes" {
 			t.Errorf("Expected path /api/cloud/sizes, got %s", r.URL.Path)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(mockAPIResponse(expectedPlans))
+		json.NewEncoder(w).Encode(mockAPIResponse(payload))
 	}))
 	defer server.Close()
 
@@ -36,6 +39,10 @@ func TestGetPlans(t *testing.T) {
 	if len(plans) != len(expectedPlans) {
 		t.Errorf("GetPlans() returned %d plans, want %d", len(plans), len(expectedPlans))
 	}
+
+	slices.SortStableFunc(plans, func(a, b Plan) int {
+		return cmp.Compare(a.ID, b.ID)
+	})
 
 	if !slices.Equal(expectedPlans, plans) {
 		t.Errorf("GetPlans() = %v, want %v", plans, expectedPlans)

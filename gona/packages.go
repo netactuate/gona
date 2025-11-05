@@ -17,7 +17,6 @@ type Package struct {
 // GetPackages external method on Client that returns a
 // list of Package object from the API
 func (c *Client) GetPackages(ctx context.Context) ([]Package, error) {
-
 	var packageList []Package
 
 	if err := c.get(ctx, "cloud/packages", &packageList); err != nil {

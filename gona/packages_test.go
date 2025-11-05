@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,20 +11,21 @@ import (
 	"testing"
 )
 
-
 func TestGetPackages(t *testing.T) {
 	expectedPackages := []Package{
 		{ID: 123, Status: "active", Locked: "0", PlanName: "Standard", Installed: 1},
 		{ID: 456, Status: "active", Locked: "0", PlanName: "Premium", Installed: 1},
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		payload := slices.Clone(expectedPackages)
+		slices.Reverse(payload)
 		if r.URL.Path != "/api/cloud/packages" {
 			t.Errorf("Expected path /api/cloud/packages, got %s", r.URL.Path)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(mockAPIResponse(expectedPackages))
+		json.NewEncoder(w).Encode(mockAPIResponse(payload))
 	}))
 	defer server.Close()
 
@@ -39,6 +41,9 @@ func TestGetPackages(t *testing.T) {
 		t.Errorf("GetPackages() returned %d packages, want 2", len(packages))
 	}
 
+	slices.SortStableFunc(packages, func(a, b Package) int {
+		return cmp.Compare(a.ID, b.ID)
+	})
 	if !slices.Equal(expectedPackages, packages) {
 		t.Errorf("GetPackages() = %v, want %v", packages, expectedPackages)
 	}
