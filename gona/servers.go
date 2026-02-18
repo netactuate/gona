@@ -26,6 +26,7 @@ type Server struct {
 	PowerStatus              string `json:"state"`
 	Installed                int    `json:"installed"`
 	CloudPoolID *int `json:"cloud_pool_id,omitempty"`
+	VpcID       *int `json:"vpc_id,omitempty"`
 }
 
 type JobStatus struct {
@@ -73,6 +74,7 @@ type CreateServerRequest struct {
 	Tag                      string `url:"tag,omitempty"`
 	TagList                  *[]string `url:"-"`
 	CloudPoolID              *int     `url:"cloud_pool_id,omitempty"`
+	VpcID                    *int     `url:"vpc_id,omitempty"`
 }
 
 // ServerBuild is a server creation response message.
@@ -125,6 +127,7 @@ type BuildServerRequest struct {
 	Tag                      string `url:"-"`
 	TagList                  *[]string `url:"-"`
 	CloudPoolID              *int     `url:"cloud_pool_id,omitempty"`
+	VpcID                    *int     `url:"vpc_id,omitempty"`
 }
 
 // BuildServer external method on Client to re-build an instance

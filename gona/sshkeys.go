@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"encoding/json"
 	"net/url"
 	"strconv"
 )
@@ -40,6 +41,24 @@ func (c *Client) CreateSSHKey(name, key string) (sshkey SSHKey, err error) {
 		return SSHKey{}, err
 	}
 
+	return sshkey, nil
+}
+
+// UpdateSSHKey updates a key's name and/or content
+func (c *Client) UpdateSSHKey(id int, name, key string) (SSHKey, error) {
+	body := map[string]string{
+		"name":    name,
+		"ssh_key": key,
+	}
+	jsonData, err := json.Marshal(body)
+	if err != nil {
+		return SSHKey{}, err
+	}
+
+	var sshkey SSHKey
+	if err := c.patch("account/ssh_key/"+strconv.Itoa(id), jsonData, &sshkey); err != nil {
+		return SSHKey{}, err
+	}
 	return sshkey, nil
 }
 

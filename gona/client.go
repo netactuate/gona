@@ -105,6 +105,19 @@ func (c *Client) post(path string, values []byte, data interface{}) error {
 	return c.do(req, data)
 }
 
+func (c *Client) patch(path string, values []byte, data interface{}) error {
+	c.debugLog("PATCH data for %s: %s", path, string(values))
+
+	req, err := c.newRequest("PATCH", path, bytes.NewBuffer(values))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return c.do(req, data)
+}
+
 // delete internal method on Client struct for providing the HTTP DELETE call
 func (c *Client) delete(path string, values url.Values, data interface{}) error {
 	req, err := c.newRequest("DELETE", path, nil)
