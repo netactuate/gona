@@ -51,7 +51,7 @@ type V3Location struct {
 
 type V3Capacity struct {
 	AutoScaling bool `json:"autoscaling"`
-	RequestedGB int  `json:"requestedGB"`
+	RequestedGB *int `json:"requestedGB"`
 	TotalGB     int  `json:"totalGB"`
 }
 
@@ -141,6 +141,10 @@ func (c *V3Client) doRequest(method, path string, body interface{}) (*V3APIRespo
 	}
 
 	c.debugLog("response status=%d body=%s", resp.StatusCode, string(respBody))
+
+	if resp.StatusCode == 204 {
+		return &V3APIResponse{Code: 204}, nil
+	}
 
 	if isSemanticNotFound(resp.StatusCode, string(respBody)) {
 		return nil, &V3NotFoundError{
