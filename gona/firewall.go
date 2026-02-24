@@ -67,8 +67,8 @@ type FirewallMatchOptions struct {
 // FirewallMatchCriteria
 type FirewallMatchCriteria struct {
 	Protocol             string                `json:"protocol,omitempty"`
-	SourceNet            []string              `json:"source_net"`
-	DestinationNet       []string              `json:"destination_net"`
+	SourceNet            []string              `json:"source_net,omitempty"`
+	DestinationNet       []string              `json:"destination_net,omitempty"`
 	SourcePortStart      *int                  `json:"source_port_start"`
 	SourcePortEnd        *int                  `json:"source_port_end"`
 	DestinationPortStart *int                  `json:"destination_port_start"`
