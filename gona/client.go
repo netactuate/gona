@@ -118,6 +118,45 @@ func (c *Client) patch(path string, values []byte, data interface{}) error {
 	return c.do(req, data)
 }
 
+func (c *Client) put(path string, values []byte, data interface{}) error {
+	c.debugLog("PUT data for %s: %s", path, string(values))
+
+	req, err := c.newRequest("PUT", path, bytes.NewBuffer(values))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	return c.do(req, data)
+}
+
+func (c *Client) postJSON(path string, values []byte, data interface{}) error {
+	c.debugLog("POST JSON data for %s: %s", path, string(values))
+
+	req, err := c.newRequest("POST", path, bytes.NewBuffer(values))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return c.do(req, data)
+}
+
+func (c *Client) putJSON(path string, values []byte, data interface{}) error {
+	c.debugLog("PUT JSON data for %s: %s", path, string(values))
+
+	req, err := c.newRequest("PUT", path, bytes.NewBuffer(values))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return c.do(req, data)
+}
+
 // delete internal method on Client struct for providing the HTTP DELETE call
 func (c *Client) delete(path string, values url.Values, data interface{}) error {
 	req, err := c.newRequest("DELETE", path, nil)
