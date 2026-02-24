@@ -6,7 +6,7 @@ import (
 )
 
 type RouterVRFBGPConfig struct {
-	LocalAsn  *int                   `json:"localAsn"`
+	LocalAsn  *string                `json:"localAsn"`
 	RouterID  string                 `json:"routerId"`
 	Networks  []RouterVRFBGPNetwork  `json:"networks"`
 	Neighbors []RouterVRFBGPNeighbor `json:"neighbors"`
@@ -22,12 +22,12 @@ type UpdateRouterVRFBGPRequest struct {
 }
 
 type RouterVRFBGPASN struct {
-	Local *int `json:"local,omitempty"`
+	Local *string `json:"local,omitempty"`
 }
 
 type UpdateRouterVRFBGPResponse struct {
-	LocalAsn  *int                   `json:"localAsn"`
-	RouterID  string                 `json:"routerId"`
+	LocalAsn  *string                `json:"localAsn"`
+	RouterID  int                    `json:"routerId"`
 	Networks  []RouterVRFBGPNetwork  `json:"networks"`
 	Neighbors []RouterVRFBGPNeighbor `json:"neighbors"`
 }
