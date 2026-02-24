@@ -14,7 +14,7 @@ var (
 	StorageWaitConfig = V3WaitConfig{Interval: 10 * time.Second, Timeout: 2 * time.Minute}
 	VPCWaitConfig     = V3WaitConfig{Interval: 1 * time.Minute, Timeout: 10 * time.Minute}  //1min
 	NKEWaitConfig     = V3WaitConfig{Interval: 1 * time.Minute, Timeout: 15 * time.Minute}
-	RouterWaitConfig  = V3WaitConfig{Interval: 10 * time.Second, Timeout: 5 * time.Minute}
+	RouterWaitConfig  = V3WaitConfig{Interval: 10 * time.Second, Timeout: 10 * time.Minute}
 )
 
 func (c *V3Client) waitForCondition(checkFn func() (bool, error), config V3WaitConfig) error {
