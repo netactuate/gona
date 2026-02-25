@@ -26,28 +26,21 @@ type UpdateRouterVRFResponse struct {
 type GetRouterVRFResponse map[string]RouterVRFConfig
 
 type RouterVRFConfig struct {
-	DNATRules   []interface{}     `json:"dnatRules"`
-	SNATRules   []interface{}     `json:"snatRules"`
-	Services    RouterVRFServices `json:"services"`
-	Tunnels     []interface{}     `json:"tunnels"`
-	BGP         BGPConfig         `json:"bgp"`
-	Routes      RoutesConfig      `json:"routes"`
-	Interfaces  []interface{}     `json:"interfaces"`
-	IPSec       IPSecConfig       `json:"ipSec"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	VrfID       int               `json:"vrfId"`
+	DNATRules   []interface{}      `json:"dnatRules"`
+	SNATRules   []interface{}      `json:"snatRules"`
+	Services    RouterVRFServices  `json:"services"`
+	Tunnels     []interface{}      `json:"tunnels"`
+	BGP         RouterVRFBGPConfig `json:"bgp"`
+	Routes      RoutesConfig       `json:"routes"`
+	Interfaces  []interface{}      `json:"interfaces"`
+	IPSec       IPSecConfig        `json:"ipSec"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	VrfID       int                `json:"vrfId"`
 }
 
 type IPSecConfig struct {
 	Peers []interface{} `json:"peers"`
-}
-
-type BGPConfig struct {
-	LocalAsn  *int          `json:"localAsn"`
-	RouterID  string        `json:"routerId"`
-	Networks  []interface{} `json:"networks"`
-	Neighbors []interface{} `json:"neighbors"`
 }
 
 type RoutesConfig struct {
