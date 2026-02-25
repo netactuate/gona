@@ -2,8 +2,11 @@ package gona
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
 	"net/url"
 	"strconv"
+	"time"
 )
 
 // Image
@@ -133,4 +136,30 @@ func (c *Client) GetImageQueueStatus(queueID int) (ImageQueueStatus, error) {
 		return ImageQueueStatus{}, err
 	}
 	return status, nil
+}
+
+func (c *Client) WaitForImageQueue(queueID int) (ImageQueueStatus, error) {
+	const maxTries = 600
+	const interval = 3 * time.Second
+
+	for i := 0; i < maxTries; i++ {
+		status, err := c.GetImageQueueStatus(queueID)
+		if err != nil {
+			return ImageQueueStatus{}, err
+		}
+
+		log.Printf("[DEBUG] Image queue %d: status=%s percent=%d", queueID, status.Status, status.Percent)
+
+		if status.Status == "Complete" {
+			return status, nil
+		}
+
+		if status.Status == "Failed" {
+			return status, fmt.Errorf("image job %d failed: %s", queueID, status.Response)
+		}
+
+		time.Sleep(interval)
+	}
+
+	return ImageQueueStatus{}, fmt.Errorf("timeout waiting for image job %d to complete", queueID)
 }
