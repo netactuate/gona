@@ -48,21 +48,7 @@ type RoutesConfig struct {
 }
 
 type RouterVRFServices struct {
-	DHCP DHCPService `json:"dhcp"`
-}
-
-type DHCPService struct {
-	Enabled              bool          `json:"enabled"`
-	InterfaceID          *int          `json:"interfaceId"`
-	Subnet               *string       `json:"subnet"`
-	DefaultRouterAddress *string       `json:"defaultRouterAddress"`
-	ClientDomainName     *string       `json:"clientDomainName"`
-	LeaseTimeout         *int          `json:"leaseTimeout"`
-	DoPingCheck          *bool         `json:"doPingCheck"`
-	Range                *string       `json:"range"`
-	DomainNameServers    []string      `json:"domainNameServers"`
-	NTPServers           []string      `json:"ntpServers"`
-	StaticRoutes         []interface{} `json:"staticRoutes"`
+	DHCP RouterVRFDHCPConfig `json:"dhcp"`
 }
 
 func (c *V3Client) CreateRouterVRF(routerID int, req CreateRouterVRFRequest) (*CreateRouterVRFResponse, error) {

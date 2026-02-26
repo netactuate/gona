@@ -51,13 +51,7 @@ type RouterLocation struct {
 }
 
 type RouterService struct {
-	NTP NTPService `json:"ntp"`
-}
-
-type NTPService struct {
-	Enabled     bool          `json:"enabled"`
-	InterfaceID *int          `json:"interfaceId"`
-	Upstreams   []NTPUpstream `json:"upstreams"`
+	NTP RouterNTPConfig `json:"ntp"`
 }
 
 type NTPUpstream struct {
