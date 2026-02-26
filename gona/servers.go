@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"encoding/json"
 	"net/url"
 	"strconv"
     "log"
@@ -208,6 +209,28 @@ func (c *Client) StopServer(id int) error {
 	}
 
 	return nil
+}
+
+// Scale
+type ScaleServerRequest struct {
+	PkgName     string `json:"pkg_name,omitempty"`
+	PkgID       int    `json:"pkg_id,omitempty"`
+	AllowReboot bool   `json:"allow_reboot"`
+}
+
+// Returns the NQueue job ID for polling via GetJobStatus("scale_vm", jobID).
+func (c *Client) ScaleServer(id int, req *ScaleServerRequest) (int, error) {
+	body, err := json.Marshal(req)
+	if err != nil {
+		return 0, fmt.Errorf("failed to marshal scale request: %w", err)
+	}
+
+	var jobID int
+	if err := c.postJSON("cloud/scale/"+strconv.Itoa(id), body, &jobID); err != nil {
+		return 0, err
+	}
+
+	return jobID, nil
 }
 
 func (c *Client) GetJobStatus(command string, jobID int) (JobStatus, error) {
