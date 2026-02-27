@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -80,6 +81,7 @@ func NewV3Client(apiKey, baseURL string) *V3Client {
 		debug:     os.Getenv("NA_API_DEBUG") != "",
 		httpClient: &http.Client{
 			Transport: transport,
+			Timeout:   120 * time.Second,
 		},
 	}
 }
