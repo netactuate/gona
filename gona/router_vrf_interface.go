@@ -34,16 +34,17 @@ type UpdateRouterVRFInterfaceResponse struct {
 }
 
 type RouterVRFInterface struct {
-	InterfaceID        int           `json:"interfaceId"`
-	VrfID              int           `json:"vrfId"`
-	Type               string        `json:"type"`
-	Name               string        `json:"name"`
-	Description        *string       `json:"description"`
-	IPv4CIDR           *string       `json:"ipv4Cidr"`
-	IPv6CIDR           *string       `json:"ipv6Cidr"`
-	EthernetHardwareID *string       `json:"ethernetHardwareId"`
-	WireguardPort      *int          `json:"wireguardPort"`
-	StaticRoutes       []interface{} `json:"staticRoutes"`
+	InterfaceID        int                                `json:"interfaceId"`
+	VrfID              int                                `json:"vrfId"`
+	Type               string                             `json:"type"`
+	Name               string                             `json:"name"`
+	Description        *string                            `json:"description"`
+	IPv4CIDR           *string                            `json:"ipv4Cidr"`
+	IPv6CIDR           *string                            `json:"ipv6Cidr"`
+	EthernetHardwareID *string                            `json:"ethernetHardwareId"`
+	WireguardPort      *int                               `json:"wireguardPort"`
+	StaticRoutes       []interface{}                      `json:"staticRoutes"`
+	Peers              []RouterVRFInterfaceWireguardPeer  `json:"peers,omitempty"`
 }
 
 type GetRouterVRFInterfacesResponse map[string]RouterVRFInterface

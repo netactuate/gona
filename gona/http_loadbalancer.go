@@ -36,15 +36,15 @@ type HTTPLBGroupRuleMatch struct {
 }
 
 type HTTPLBGroupRuleSSL struct {
-	Enabled          bool `json:"enabled"`
-	SSLCertificateID *int `json:"sslCertificateId"`
+	Enabled              bool `json:"enabled"`
+	SSLCertificateID     *int `json:"sslCertificateId"`
+	HTTPSRedirectEnabled bool `json:"httpsRedirectEnabled"`
 }
 
 type HTTPLBGroupRule struct {
-	HTTPRuleID           int                  `json:"httpRuleId,omitempty"`
-	Match                HTTPLBGroupRuleMatch `json:"match"`
-	SSL                  HTTPLBGroupRuleSSL   `json:"ssl"`
-	HTTPSRedirectEnabled bool                 `json:"httpsRedirectEnabled"`
+	HTTPRuleID int                  `json:"httpRuleId,omitempty"`
+	Match      HTTPLBGroupRuleMatch `json:"match"`
+	SSL        HTTPLBGroupRuleSSL   `json:"ssl"`
 }
 
 type HTTPLBGroupBackend struct {

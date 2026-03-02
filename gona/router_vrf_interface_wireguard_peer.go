@@ -50,19 +50,22 @@ func (c *V3Client) CreateRouterVRFInterfaceWireguardPeer(routerID int, vrfID int
 }
 
 func (c *V3Client) GetRouterVRFInterfaceWireguardPeer(routerID int, vrfID int, interfaceID int, wireguardPeerID int) (*RouterVRFInterfaceWireguardPeer, error) {
-	path := fmt.Sprintf("/cloud-routing/routers/%d/config/vrfs/%d/interfaces/%d/wireguard-peers/%d", routerID, vrfID, interfaceID, wireguardPeerID)
-
-	resp, err := c.get(path)
+	// Workaround: the direct GET /wireguard-peers/:id not always do what expected. So now fetch the  parent interface and find the peer in its peers list.
+	iface, err := c.GetRouterVRFInterface(routerID, vrfID, interfaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get wireguard peer %d on interface %d in VRF %d on router %d: %w", wireguardPeerID, interfaceID, vrfID, routerID, err)
 	}
 
-	var peer RouterVRFInterfaceWireguardPeer
-	if err := json.Unmarshal(resp.Data, &peer); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal wireguard peer response: %w", err)
+	for _, peer := range iface.Peers {
+		if peer.WireguardPeerID == wireguardPeerID {
+			return &peer, nil
+		}
 	}
 
-	return &peer, nil
+	return nil, &V3NotFoundError{
+		StatusCode: 404,
+		Body:       fmt.Sprintf("wireguard peer %d not found on interface %d", wireguardPeerID, interfaceID),
+	}
 }
 
 func (c *V3Client) DeleteRouterVRFInterfaceWireguardPeer(routerID int, vrfID int, interfaceID int, wireguardPeerID int) error {

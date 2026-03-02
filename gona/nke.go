@@ -73,10 +73,6 @@ type NKECluster struct {
 	Tags []NKETag `json:"tags"`
 }
 
-type NKEPool struct {
-	ID int `json:"id"`
-}
-
 type CreateNKEClusterRequest struct {
 	Name             string               `json:"name"`
 	Version          string               `json:"version"`
@@ -84,9 +80,9 @@ type CreateNKEClusterRequest struct {
 	MinimumNodes     int                  `json:"minimumNodes"`
 	MaximumNodes     int                  `json:"maximumNodes"`
 	DoAutoscaling    bool                 `json:"doAutoscaling"`
+	DoDualStack      bool                 `json:"doDualStack"`
 	HighAvailability bool                 `json:"enable.high.availability"`
 	Billing          NKEBilling           `json:"billing"`
-	Pool             *NKEPool             `json:"pool,omitempty"`
 	AddonsToInstall  *NKEAddons           `json:"addonsToInstall,omitempty"`
 	Tags             []NKEClusterTagInput `json:"tags,omitempty"`
 }
@@ -105,7 +101,6 @@ type UpdateNKEClusterRequest struct {
 	Version       string               `json:"version,omitempty"`
 	DoAutoscaling *bool                `json:"doAutoscaling,omitempty"`
 	Billing       *NKEUpdateBilling    `json:"billing,omitempty"`
-	Pool          *NKEPool             `json:"pool,omitempty"`
 	Nodes         *NKEUpdateNodes      `json:"nodes,omitempty"`
 	Tags          []NKEClusterTagInput `json:"tags,omitempty"`
 }
