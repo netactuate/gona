@@ -54,7 +54,7 @@ type CreateRouterVRFIPSecPeerRequest struct {
 	RemoteID             string                              `json:"remoteId"`
 	PSKSecret            string                              `json:"pskSecret"`
 	DoInitiateConnection bool                                `json:"doInitiateConnection"`
-	PeerAddress          string                              `json:"peerAddress"`
+	PeerAddress          string                              `json:"peerAddress,omitempty"`
 	OverlayNetwork       CreateRouterVRFIPSecOverlayNetwork  `json:"overlayNetwork"`
 }
 
