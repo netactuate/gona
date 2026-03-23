@@ -103,10 +103,5 @@ func (c *V3Client) EnableVPCSSHKey(vpcID, sshKeyID int, enabled bool) error {
 }
 
 func (c *V3Client) DeleteVPCSSHKey(vpcID, sshKeyID int) error {
-	path := fmt.Sprintf("/vpcs/%d/ssh/keys/%d", vpcID, sshKeyID)
-	_, err := c.del(path)
-	if err != nil {
-		return fmt.Errorf("delete SSH key %d for VPC %d: %w", sshKeyID, vpcID, err)
-	}
-	return nil
+	return c.EnableVPCSSHKey(vpcID, sshKeyID, false)
 }
