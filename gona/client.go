@@ -197,7 +197,7 @@ func (c *Client) newRequest(method string, path string, body io.Reader) (*http.R
 type apiResponse struct {
 	Result  string                 `json:"result"`
 	Message string                 `json:"message"`
-	Data    interface{}            `json:"data"`
+	Data    json.RawMessage        `json:"data"`
 	Code    int                    `json:"code"`
 	Fields  map[string]interface{} `json:"fields"`
 }
@@ -216,9 +216,7 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 	}
 	c.debugLog("got a response: %s", string(body))
 
-	r := &apiResponse{
-		Data: data,
-	}
+	r := &apiResponse{}
 	if err := json.Unmarshal(body, r); err != nil {
 		return fmt.Errorf("could not unmarshal response %q: %w", string(body), err)
 	}
@@ -233,7 +231,14 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 	}
 
 	if (resp.StatusCode != http.StatusOK && resp.StatusCode != 422) || (r.Code != http.StatusOK && r.Code != 422) {
-		return fmt.Errorf("got an error response on %s %s: code %d / %d, response: %s / %+v", req.Method, req.URL, resp.StatusCode, r.Code, r.Message, r.Data)
+		return fmt.Errorf("got an error response on %s %s: code %d / %d, response: %s / %s", req.Method, req.URL, resp.StatusCode, r.Code, r.Message, string(r.Data))
+	}
+
+	// Unmarshal the data field into the caller's typed struct only on success
+	if data != nil && len(r.Data) > 0 {
+		if err := json.Unmarshal(r.Data, data); err != nil {
+			return fmt.Errorf("could not unmarshal response data %q: %w", string(r.Data), err)
+		}
 	}
 
 	return nil
