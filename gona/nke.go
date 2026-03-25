@@ -32,6 +32,7 @@ type NKECluster struct {
 	ContractID          int    `json:"contractId"`
 	Replicas            int    `json:"replicas"`
 	DoAutoscaling       int    `json:"doAutoscaling"` // 0 or 1 from API
+	IsDualStack         bool   `json:"isDualStack"`
 	HasHighAvailability bool   `json:"hasHighAvailabity"` // note: API typo preserved
 	Status              struct {
 		Cluster string `json:"cluster"`
@@ -79,10 +80,9 @@ type CreateNKEClusterRequest struct {
 	Replicas         int                  `json:"replicas"`
 	MinimumNodes     int                  `json:"minimumNodes"`
 	MaximumNodes     int                  `json:"maximumNodes"`
-	DoAutoscaling    bool                 `json:"doAutoscaling"`
-	DoDualStack      bool                 `json:"doDualStack"`
-	HighAvailability bool                 `json:"enable.high.availability"`
-	Billing          NKEBilling           `json:"billing"`
+	DoAutoscaling bool                 `json:"doAutoscaling"`
+	DoDualStack   bool                 `json:"doDualStack"`
+	Billing       NKEBilling           `json:"billing"`
 	AddonsToInstall  *NKEAddons           `json:"addonsToInstall,omitempty"`
 	Tags             []NKEClusterTagInput `json:"tags,omitempty"`
 }
