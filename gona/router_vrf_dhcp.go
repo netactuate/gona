@@ -37,8 +37,8 @@ type UpdateRouterVRFDHCPRequest struct {
 	Enabled              bool                    `json:"enabled"`
 	InterfaceID          int                     `json:"interfaceId"`
 	Subnet               string                  `json:"subnet"`
-	DefaultRouterAddress string                  `json:"defaultRouterAddress"`
-	ClientDomainName     string                  `json:"clientDomainName"`
+	DefaultRouterAddress string                  `json:"defaultRouterAddress,omitempty"`
+	ClientDomainName     string                  `json:"clientDomainName,omitempty"`
 	LeaseTimeout         int                     `json:"leaseTimeout"`
 	DoPingCheck          bool                    `json:"doPingCheck"`
 	Range                *RouterDHCPRange        `json:"range"`
