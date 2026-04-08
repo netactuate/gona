@@ -3,6 +3,7 @@ package gona
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 type VPCFirewallRule struct {
@@ -106,7 +107,7 @@ func (c *V3Client) DeleteVPCFirewallRule(vpcID, ruleID int) error {
 
 func (c *V3Client) ApplyVPCFirewallChanges(vpcID int) error {
 	path := fmt.Sprintf("/vpcs/%d/gateway/rules/firewall/apply-changes", vpcID)
-	_, err := c.post(path, nil)
+	_, err := c.postWithRetry(path, 6, 10*time.Second)
 	if err != nil {
 		return fmt.Errorf("apply firewall changes for VPC %d: %w", vpcID, err)
 	}

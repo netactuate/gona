@@ -3,6 +3,7 @@ package gona
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 type VPCFloatingIP struct {
@@ -28,7 +29,18 @@ type CreateVPCFloatingIPResponse struct {
 
 func (c *V3Client) CreateVPCFloatingIP(vpcID int, req *CreateVPCFloatingIPRequest) (*CreateVPCFloatingIPResponse, error) {
 	path := fmt.Sprintf("/vpcs/%d/floating-ips", vpcID)
-	resp, err := c.post(path, req)
+	var resp *V3APIResponse
+	var err error
+	for attempt := 0; attempt < 4; attempt++ {
+		if attempt > 0 {
+			c.debugLog("CreateVPCFloatingIP attempt %d/4 after transient error: %v", attempt+1, err)
+			time.Sleep(10 * time.Second)
+		}
+		resp, err = c.post(path, req)
+		if err == nil || !isTransientServerError(err) {
+			break
+		}
+	}
 	if err != nil {
 		return nil, fmt.Errorf("create floating IP for VPC %d: %w", vpcID, err)
 	}

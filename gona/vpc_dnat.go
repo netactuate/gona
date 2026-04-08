@@ -3,6 +3,7 @@ package gona
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 type VPCDNATRule struct {
@@ -122,7 +123,7 @@ func (c *V3Client) DeleteVPCDNATRule(vpcID, ruleID int) error {
 
 func (c *V3Client) ApplyVPCDNATChanges(vpcID int) error {
 	path := fmt.Sprintf("/vpcs/%d/gateway/rules/dnat/apply-changes", vpcID)
-	_, err := c.post(path, nil)
+	_, err := c.postWithRetry(path, 6, 10*time.Second)
 	if err != nil {
 		return fmt.Errorf("apply DNAT changes for VPC %d: %w", vpcID, err)
 	}

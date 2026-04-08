@@ -220,6 +220,40 @@ func IsV3NotFound(err error) bool {
 	return ok
 }
 
+// isTransientServerError returns true for 5xx errors that are likely transient
+// (e.g. the gateway VM not yet ready immediately after VPC creation).
+func isTransientServerError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "HTTP 500") ||
+		strings.Contains(msg, "HTTP 502") ||
+		strings.Contains(msg, "HTTP 503") ||
+		strings.Contains(msg, "HTTP 504")
+}
+
+// postWithRetry calls POST on path and retries up to maxRetries times with
+// retryInterval between attempts when a transient server error is returned.
+// Use this for apply-changes endpoints that may return 5xx briefly after VPC
+// creation while the gateway VM is still initialising.
+func (c *V3Client) postWithRetry(path string, maxRetries int, retryInterval time.Duration) (*V3APIResponse, error) {
+	resp, err := c.post(path, nil)
+	if err == nil {
+		return resp, nil
+	}
+	for i := 0; i < maxRetries && isTransientServerError(err); i++ {
+		c.debugLog("POST %s returned transient error (attempt %d/%d): %v — retrying in %v",
+			path, i+1, maxRetries, err, retryInterval)
+		time.Sleep(retryInterval)
+		resp, err = c.post(path, nil)
+		if err == nil {
+			return resp, nil
+		}
+	}
+	return nil, err
+}
+
 func isSemanticNotFound(statusCode int, body string) bool {
 	if statusCode == 404 || statusCode == 410 {
 		return true

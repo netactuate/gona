@@ -36,15 +36,15 @@ type HTTPLBGroupRuleMatch struct {
 }
 
 type HTTPLBGroupRuleSSL struct {
-	Enabled              bool `json:"enabled"`
-	SSLCertificateID     *int `json:"sslCertificateId"`
-	HTTPSRedirectEnabled bool `json:"httpsRedirectEnabled"`
+	Enabled          bool `json:"enabled"`
+	SSLCertificateID *int `json:"sslCertificateId"`
 }
 
 type HTTPLBGroupRule struct {
-	HTTPRuleID int                  `json:"httpRuleId,omitempty"`
-	Match      HTTPLBGroupRuleMatch `json:"match"`
-	SSL        HTTPLBGroupRuleSSL   `json:"ssl"`
+	HTTPRuleID           int                  `json:"httpRuleId,omitempty"`
+	HTTPSRedirectEnabled bool                 `json:"httpsRedirectEnabled"`
+	Match                HTTPLBGroupRuleMatch `json:"match"`
+	SSL                  HTTPLBGroupRuleSSL   `json:"ssl"`
 }
 
 type HTTPLBGroupBackend struct {
@@ -57,18 +57,18 @@ type HTTPLBGroupBackend struct {
 // --- Main types ---
 
 type HTTPLBGroup struct {
-	HTTPGroupID          int                    `json:"httpGroupId"`
-	Name                 string                 `json:"name"`
-	Description          string                 `json:"description"`
-	Algorithm            string                 `json:"algorithm"`
-	StickySessionsEnabled bool                  `json:"stickySessionsEnabled"`
-	SSLToBackendEnabled  bool                   `json:"sslToBackendEnabled"`
-	InternalPort         int                    `json:"internalPort"`
-	IsOnline             bool                   `json:"isOnline"`
-	Match                HTTPLBGroupMatch       `json:"match"`
-	HealthCheck          HTTPLBGroupHealthCheck `json:"healthCheck"`
-	Rules                []HTTPLBGroupRule      `json:"rules"`
-	Backends             []HTTPLBGroupBackend   `json:"backends"`
+	HTTPGroupID           int                    `json:"httpGroupId"`
+	Name                  string                 `json:"name"`
+	Description           string                 `json:"description"`
+	Algorithm             string                 `json:"algorithm"`
+	StickySessionsEnabled bool                   `json:"stickySessionsEnabled"`
+	SSLToBackendEnabled   bool                   `json:"sslToBackendEnabled"`
+	InternalPort          int                    `json:"internalPort"`
+	IsOnline              bool                   `json:"isOnline"`
+	Match                 HTTPLBGroupMatch       `json:"match"`
+	HealthCheck           HTTPLBGroupHealthCheck `json:"healthCheck"`
+	Rules                 []HTTPLBGroupRule      `json:"rules"`
+	Backends              []HTTPLBGroupBackend   `json:"backends"`
 }
 
 type CreateHTTPLBGroupRequest struct {

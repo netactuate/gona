@@ -43,6 +43,7 @@ type RouterVRFInterface struct {
 	IPv6CIDR           *string                            `json:"ipv6Cidr"`
 	EthernetHardwareID *string                            `json:"ethernetHardwareId"`
 	WireguardPort      *int                               `json:"wireguardPort"`
+	PublicKey          *string                            `json:"publicKey,omitempty"`
 	StaticRoutes       []interface{}                      `json:"staticRoutes"`
 	Peers              []RouterVRFInterfaceWireguardPeer  `json:"peers,omitempty"`
 }

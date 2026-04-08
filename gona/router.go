@@ -3,6 +3,7 @@ package gona
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"time"
 )
 
@@ -80,9 +81,10 @@ func (f *FlexibleIPv4) UnmarshalJSON(data []byte) error {
 		*f = FlexibleIPv4(s)
 		return nil
 	}
-	var i int
+	var i uint32
 	if err := json.Unmarshal(data, &i); err == nil {
-		*f = FlexibleIPv4(fmt.Sprintf("%d", i))
+		ip := net.IP{byte(i >> 24), byte(i >> 16), byte(i >> 8), byte(i)}
+		*f = FlexibleIPv4(ip.String())
 		return nil
 	}
 

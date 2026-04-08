@@ -26,8 +26,9 @@ type Server struct {
 	ServerStatus             string `json:"status"`
 	PowerStatus              string `json:"state"`
 	Installed                int    `json:"installed"`
-	CloudPoolID *int `json:"cloud_pool_id,omitempty"`
-	VpcID       *int `json:"vpc_id,omitempty"`
+	CloudPoolID         *int   `json:"cloud_pool_id,omitempty"`
+	VpcID               *int   `json:"vpc_id,omitempty"`
+	VpcReservedNetwork  string `json:"vpc_reserved_network,omitempty"`
 }
 
 type JobStatus struct {

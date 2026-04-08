@@ -20,6 +20,8 @@ type StorageS3Credentials struct {
 
 type StorageBlockCredentials struct {
 	Endpoints []string `json:"endpoints"`
+	UserKey   string   `json:"userKey,omitempty"`
+	SecretKey string   `json:"secretKey,omitempty"`
 	Pool      string   `json:"pool"`
 	Namespace string   `json:"namespace"`
 	ClusterID string   `json:"clusterId"`
@@ -27,10 +29,10 @@ type StorageBlockCredentials struct {
 }
 
 type storageCreateResponse struct {
-	BucketID         int                        `json:"bucketId,omitempty"`
-	ObjectStoreID    int                        `json:"objectStoreId,omitempty"`
-	BlockNamespaceID int                        `json:"blockNamespaceId,omitempty"`
-	BlockVolumeID    int                        `json:"blockVolumeId,omitempty"`
+	BucketID         int                         `json:"bucketId,omitempty"`
+	ObjectStoreID    int                         `json:"objectStoreId,omitempty"`
+	BlockNamespaceID int                         `json:"blockNamespaceId,omitempty"`
+	BlockVolumeID    int                         `json:"blockVolumeId,omitempty"`
 	Details          storageCreateResponseDetail `json:"details"`
 }
 
@@ -56,11 +58,11 @@ type StorageBucketMetadata struct {
 }
 
 type CreateStorageBucketRequest struct {
-	LocationID        int   `json:"locationId"`
+	LocationID        int    `json:"locationId"`
 	Label             string `json:"label"`
-	Capacity          int   `json:"capacity,omitempty"`
-	Private           *bool `json:"private,omitempty"`
-	EnableAutoScaling *bool `json:"enableAutoScaling,omitempty"`
+	Capacity          int    `json:"capacity,omitempty"`
+	Private           *bool  `json:"private,omitempty"`
+	EnableAutoScaling *bool  `json:"enableAutoScaling,omitempty"`
 }
 
 type UpdateStorageBucketRequest struct {
@@ -207,7 +209,7 @@ func (c *V3Client) WaitForStorageObjectStoreReady(objectStoreID int) error {
 }
 
 type StorageBlockNamespace struct {
-	Credentials StorageBlockCredentials        `json:"credentials"`
+	Credentials StorageBlockCredentials       `json:"credentials"`
 	Metadata    StorageBlockNamespaceMetadata `json:"metadata"`
 }
 
@@ -289,7 +291,7 @@ func (c *V3Client) WaitForStorageBlockNamespaceReady(blockNamespaceID int) error
 }
 
 type StorageBlockVolume struct {
-	Credentials StorageBlockCredentials     `json:"credentials"`
+	Credentials StorageBlockCredentials    `json:"credentials"`
 	Metadata    StorageBlockVolumeMetadata `json:"metadata"`
 }
 
@@ -367,7 +369,6 @@ func (c *V3Client) WaitForStorageBlockVolumeReady(blockVolumeID int) error {
 		return vol.Metadata.Ready, nil
 	}, StorageWaitConfig)
 }
-
 
 type StorageLocation struct {
 	Location V3Location           `json:"location"`
