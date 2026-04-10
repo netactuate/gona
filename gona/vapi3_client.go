@@ -233,6 +233,18 @@ func isTransientServerError(err error) bool {
 		strings.Contains(msg, "HTTP 504")
 }
 
+// isVPCNotReadyError returns true when the API reports a 400 because a VPC
+// exists but child services are still initializing.
+func isVPCNotReadyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "http 400") &&
+		strings.Contains(msg, "vpc") &&
+		strings.Contains(msg, "not ready")
+}
+
 // postWithRetry calls POST on path and retries up to maxRetries times with
 // retryInterval between attempts when a transient server error is returned.
 // Use this for apply-changes endpoints that may return 5xx briefly after VPC

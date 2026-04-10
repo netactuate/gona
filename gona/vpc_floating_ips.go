@@ -29,15 +29,18 @@ type CreateVPCFloatingIPResponse struct {
 
 func (c *V3Client) CreateVPCFloatingIP(vpcID int, req *CreateVPCFloatingIPRequest) (*CreateVPCFloatingIPResponse, error) {
 	path := fmt.Sprintf("/vpcs/%d/floating-ips", vpcID)
+	const maxAttempts = 7
+	const retryDelay = 10 * time.Second
+
 	var resp *V3APIResponse
 	var err error
-	for attempt := 0; attempt < 4; attempt++ {
+	for attempt := 0; attempt < maxAttempts; attempt++ {
 		if attempt > 0 {
-			c.debugLog("CreateVPCFloatingIP attempt %d/4 after transient error: %v", attempt+1, err)
-			time.Sleep(10 * time.Second)
+			c.debugLog("CreateVPCFloatingIP attempt %d/%d after transient/not-ready error: %v", attempt+1, maxAttempts, err)
+			time.Sleep(retryDelay)
 		}
 		resp, err = c.post(path, req)
-		if err == nil || !isTransientServerError(err) {
+		if err == nil || (!isTransientServerError(err) && !isVPCNotReadyError(err)) {
 			break
 		}
 	}
