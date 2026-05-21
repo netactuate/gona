@@ -17,7 +17,7 @@ import (
 
 // Version, BaseEndpoint, ContentType constants
 const (
-	Version      = "0.2.0"
+	Version      = "0.3.0"
 	BaseEndpoint = "https://vapi2.netactuate.com/api/"
 	ContentType  = "application/json"
 )
@@ -221,7 +221,7 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 		return fmt.Errorf("could not unmarshal response %q: %w", string(body), err)
 	}
 
-  // Error Handling - This currently ignores invalid mbpkdgid errors to enable the Terraform Provider
+	// Error Handling - This currently ignores invalid mbpkdgid errors to enable the Terraform Provider
 	if (resp.StatusCode == 422 || r.Code == 422) && (r.Fields != nil && r.Fields["mbpkgid"] == nil) {
 		fieldStr := ""
 		for key, value := range r.Fields {
