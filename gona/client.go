@@ -51,7 +51,10 @@ func NewClientCustom(apikey string, apiurl string) *Client {
 	}
 	client := http.DefaultClient
 	client.Transport = transport
-	endpoint, _ := url.Parse(apiurl)
+	endpoint, err := url.Parse(apiurl)
+	if err != nil {
+		panic(fmt.Sprintf("invalid API URL: %v", err))
+	}
 
 	return &Client{
 		userAgent: useragent,
