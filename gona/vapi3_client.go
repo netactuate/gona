@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -212,12 +213,13 @@ func (e *V3NotFoundError) Error() string {
 	return fmt.Sprintf("resource not found (HTTP %d): %s", e.StatusCode, e.Body)
 }
 
+// IsV3NotFound reports whether err is, or wraps, a *V3NotFoundError. Callers
+// use it to distinguish "the remote object is gone" from a genuine failure, so
+// it must see through the %w chains that the resource helpers add on the way
+// up.
 func IsV3NotFound(err error) bool {
-	if err == nil {
-		return false
-	}
-	_, ok := err.(*V3NotFoundError)
-	return ok
+	var notFound *V3NotFoundError
+	return errors.As(err, &notFound)
 }
 
 // isTransientServerError returns true for 5xx errors that are likely transient
