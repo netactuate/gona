@@ -105,13 +105,9 @@ func (c *V3Client) GetNLBGroup(nlbID, groupID int) (*NLBGroup, error) {
 
 func (c *V3Client) ListNLBGroups(nlbID int) ([]NLBGroup, error) {
 	path := fmt.Sprintf("/network-loadbalancers/%d/groups", nlbID)
-	resp, err := c.get(path)
+	listData, err := c.getList(path)
 	if err != nil {
 		return nil, fmt.Errorf("list NLB groups for NLB %d: %w", nlbID, err)
-	}
-	var listData V3ListData
-	if err := json.Unmarshal(resp.Data, &listData); err != nil {
-		return nil, fmt.Errorf("list NLB groups unmarshal outer: %w", err)
 	}
 	var groups []NLBGroup
 	if err := json.Unmarshal(listData.Data, &groups); err != nil {

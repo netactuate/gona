@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"context"
 	"encoding/json"
 	"net/url"
 	"strconv"
@@ -19,16 +20,15 @@ type Server struct {
 	PrimaryIPv6              string `json:"ipv6"`
 	PlanID                   int    `json:"plan_id"`
 	Package                  string `json:"package"`
-	PackageBilling           string `json:"package_billing"`
-	PackageBillingContractId string `json:"package_billing_contract_id"`
+	PackageBillingContractId int    `json:"contract_id"`
 	Location                 string `json:"city"`
 	LocationID               int    `json:"location_id"`
 	ServerStatus             string `json:"status"`
 	PowerStatus              string `json:"state"`
 	Installed                int    `json:"installed"`
-	CloudPoolID         *int   `json:"cloud_pool_id,omitempty"`
-	VpcID               *int   `json:"vpc_id,omitempty"`
-	VpcReservedNetwork  string `json:"vpc_reserved_network,omitempty"`
+	CloudPoolID              *int   `json:"cloud_pool_id,omitempty"`
+	VpcID                    *int   `json:"vpc_id,omitempty"`
+	VpcReservedNetwork       string `json:"vpc_reserved_network,omitempty"`
 }
 
 type JobStatus struct {
@@ -45,7 +45,7 @@ type DeleteServerResponse struct {
 // GetServers external method on Client to list your instances
 func (c *Client) GetServers() ([]Server, error) {
 	var serverList []Server
-	if err := c.get("cloud/servers", &serverList); err != nil {
+	if err := c.get(context.Background(), "cloud/servers", &serverList); err != nil {
 		return nil, err
 	}
 	return serverList, nil
@@ -53,7 +53,7 @@ func (c *Client) GetServers() ([]Server, error) {
 
 // GetServer external method on Client to get an instance
 func (c *Client) GetServer(id int) (server Server, err error) {
-	if err := c.get("cloud/server?mbpkgid="+strconv.Itoa(id), &server); err != nil {
+	if err := c.get(context.Background(), "cloud/server?mbpkgid="+strconv.Itoa(id), &server); err != nil {
 		return server, err
 	}
 	return server, nil
@@ -105,7 +105,7 @@ func (c *Client) CreateServer(r *CreateServerRequest) (b ServerBuild, err error)
 		values.Add("script_type", "user-data")
 	}
 
-	if err := c.post("cloud/server/buy_build", []byte(values.Encode()), &b); err != nil {
+	if err := c.post(context.Background(), "cloud/server/buy_build", []byte(values.Encode()), &b); err != nil {
 		return b, err
 	}
 
@@ -155,7 +155,7 @@ func (c *Client) BuildServer(id int, r *BuildServerRequest) (b ServerBuild, err 
     //     values.Add("params", r.Params)
     // }
 
-	if err := c.post("cloud/server/build/"+strconv.Itoa(id), []byte(values.Encode()), &b); err != nil {
+	if err := c.post(context.Background(), "cloud/server/build/"+strconv.Itoa(id), []byte(values.Encode()), &b); err != nil {
 		return b, err
 	}
 
@@ -170,7 +170,7 @@ func (c *Client) DeleteServer(id int, cancelBilling bool) (int, error) {
     }
 
     var resp DeleteServerResponse
-    if err := c.post(
+    if err := c.post(context.Background(), 
         "cloud/server/delete?mbpkgid="+strconv.Itoa(id),
         []byte(values.Encode()),
         &resp,
@@ -189,13 +189,13 @@ func (c *Client) DeleteServer(id int, cancelBilling bool) (int, error) {
 
 // UnlinkServer external method on Client to unlink a billing package from a location
 func (c *Client) UnlinkServer(id int) error {
-	return c.post("cloud/server/unlink/"+strconv.Itoa(id), nil, nil)
+	return c.post(context.Background(), "cloud/server/unlink/"+strconv.Itoa(id), nil, nil)
 }
 
 // StartServer external method on Client to boot up an instance
 func (c *Client) StartServer(id int) error {
 
-	if err := c.post("cloud/server/start/"+strconv.Itoa(id), nil, nil); err != nil {
+	if err := c.post(context.Background(), "cloud/server/start/"+strconv.Itoa(id), nil, nil); err != nil {
 		return err
 	}
 
@@ -205,7 +205,7 @@ func (c *Client) StartServer(id int) error {
 // StopServer external method on Client to shut down an instance
 func (c *Client) StopServer(id int) error {
 
-	if err := c.post("cloud/server/shutdown/"+strconv.Itoa(id), nil, nil); err != nil {
+	if err := c.post(context.Background(), "cloud/server/shutdown/"+strconv.Itoa(id), nil, nil); err != nil {
 		return err
 	}
 
@@ -227,7 +227,7 @@ func (c *Client) ScaleServer(id int, req *ScaleServerRequest) (int, error) {
 	}
 
 	var jobID int
-	if err := c.postJSON("cloud/scale/"+strconv.Itoa(id), body, &jobID); err != nil {
+	if err := c.postJSON(context.Background(), "cloud/scale/"+strconv.Itoa(id), body, &jobID); err != nil {
 		return 0, err
 	}
 
@@ -239,7 +239,7 @@ func (c *Client) GetJobStatus(command string, jobID int) (JobStatus, error) {
     endpoint := "cloud/jobs/" + command + "/" + strconv.Itoa(jobID)
     log.Printf("[DEBUG] GetJobStatus: Making request to endpoint: %s", endpoint)
 
-    if err := c.get(endpoint, &jobStatus); err != nil {
+    if err := c.get(context.Background(), endpoint, &jobStatus); err != nil {
         log.Printf("[DEBUG] GetJobStatus: API call failed for endpoint %s: %v", endpoint, err)
         return JobStatus{}, err
     }

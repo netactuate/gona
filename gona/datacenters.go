@@ -4,6 +4,7 @@ import (
 // 	"net/url"
 // 	"strconv"
 //   "log"
+     "context"
      "fmt"
 //	"github.com/google/go-querystring/query"
 )
@@ -16,7 +17,7 @@ type Datacenter struct {
 
 func (c *Client) GetDatacenterByIATA(iata string) (int, error) {
 	var resp Datacenter
-	if err := c.get(fmt.Sprintf("platform/datacenters-by-iata/%s", iata), &resp); err != nil {
+	if err := c.get(context.Background(), fmt.Sprintf("platform/datacenters-by-iata/%s", iata), &resp); err != nil {
 		return 0, err
 	}
 	return resp.ID, nil

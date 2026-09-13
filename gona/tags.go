@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -67,7 +68,7 @@ type tagResourceRef struct {
 // GetTags lists every tag (each with its Resources slice embedded).
 func (c *Client) GetTags() ([]Tag, error) {
 	var tags []Tag
-	if err := c.get("tags", &tags); err != nil {
+	if err := c.get(context.Background(), "tags", &tags); err != nil {
 		return nil, err
 	}
 	return tags, nil
@@ -96,7 +97,7 @@ func (c *Client) CreateTag(r *CreateTagRequest) (*Tag, error) {
 		return nil, err
 	}
 	var tag Tag
-	if err := c.postJSON("tags", body, &tag); err != nil {
+	if err := c.postJSON(context.Background(), "tags", body, &tag); err != nil {
 		return nil, err
 	}
 	return &tag, nil
@@ -109,7 +110,7 @@ func (c *Client) UpdateTag(id int, r *UpdateTagRequest) (*Tag, error) {
 		return nil, err
 	}
 	var tag Tag
-	if err := c.putJSON("tags/"+strconv.Itoa(id), body, &tag); err != nil {
+	if err := c.putJSON(context.Background(), "tags/"+strconv.Itoa(id), body, &tag); err != nil {
 		return nil, err
 	}
 	return &tag, nil
@@ -118,7 +119,7 @@ func (c *Client) UpdateTag(id int, r *UpdateTagRequest) (*Tag, error) {
 // DeleteTag deletes a tag object. The API returns 412 when the tag is locked or
 // still assigned; that surfaces as an error from do().
 func (c *Client) DeleteTag(id int) error {
-	return c.delete("tags/"+strconv.Itoa(id), nil, nil)
+	return c.delete(context.Background(), "tags/"+strconv.Itoa(id), nil, nil)
 }
 
 // AssignTagResource attaches tagID to a resource (idempotent server-side).
@@ -130,7 +131,7 @@ func (c *Client) AssignTagResource(tagID int, resourceName string, identifier in
 	if err != nil {
 		return err
 	}
-	return c.postJSON("tags/"+strconv.Itoa(tagID)+"/assign-resource", body, nil)
+	return c.postJSON(context.Background(), "tags/"+strconv.Itoa(tagID)+"/assign-resource", body, nil)
 }
 
 // RemoveTagResource detaches tagID from a resource. It removes only the
@@ -143,7 +144,7 @@ func (c *Client) RemoveTagResource(tagID int, resourceName string, identifier in
 	if err != nil {
 		return err
 	}
-	return c.postJSON("tags/"+strconv.Itoa(tagID)+"/remove-resource", body, nil)
+	return c.postJSON(context.Background(), "tags/"+strconv.Itoa(tagID)+"/remove-resource", body, nil)
 }
 
 // GetResourceTags returns the tags currently assigned to a given resource. It

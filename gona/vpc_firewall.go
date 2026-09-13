@@ -55,13 +55,9 @@ func (c *V3Client) CreateVPCFirewallRule(vpcID int, req *CreateVPCFirewallRuleRe
 
 func (c *V3Client) ListVPCFirewallRules(vpcID, ipVersion int) ([]VPCFirewallRule, error) {
 	path := fmt.Sprintf("/vpcs/%d/gateway/rules/firewall/ipv%d", vpcID, ipVersion)
-	resp, err := c.get(path)
+	listData, err := c.getList(path)
 	if err != nil {
 		return nil, fmt.Errorf("list firewall rules for VPC %d: %w", vpcID, err)
-	}
-	var listData V3ListData
-	if err := json.Unmarshal(resp.Data, &listData); err != nil {
-		return nil, fmt.Errorf("list firewall rules unmarshal outer: %w", err)
 	}
 	var rules []VPCFirewallRule
 	if err := json.Unmarshal(listData.Data, &rules); err != nil {

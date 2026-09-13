@@ -1,9 +1,9 @@
 package gona
 
 import (
+	"context"
+	"net/netip"
 	"strconv"
-
-	"inet.af/netaddr"
 )
 
 type IPType string
@@ -19,8 +19,8 @@ type IPs struct {
 }
 
 type IP struct {
-	ID        int `json:"id"`
-	Primary   int `json:"primary"`
+	ID        int    `json:"id"`
+	Primary   int    `json:"primary"`
 	Reverse   string `json:"reverse"`
 	IP        string `json:"ip"`
 	Gateway   string `json:"gateway"`
@@ -37,7 +37,7 @@ func (ips *IPs) GetIPsMap() *map[string]IPType {
 	for _, ip := range ips.IPv6 {
 		m[ip.IP] = IPv6
 
-		ip6, err := netaddr.ParseIP(ip.IP)
+		ip6, err := netip.ParseAddr(ip.IP)
 		if err == nil {
 			m[ip6.StringExpanded()] = IPv6
 		}
@@ -48,7 +48,7 @@ func (ips *IPs) GetIPsMap() *map[string]IPType {
 
 // GetIPs returns a list of IPs for the selected mbPkgID from the API
 func (c *Client) GetIPs(mbPkgID int) (ips IPs, err error) {
-	if err := c.get("cloud/networkips/"+strconv.Itoa(mbPkgID), &ips); err != nil {
+	if err := c.get(context.Background(), "cloud/networkips/"+strconv.Itoa(mbPkgID), &ips); err != nil {
 		return IPs{}, err
 	}
 

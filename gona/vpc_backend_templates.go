@@ -74,13 +74,9 @@ func (c *V3Client) GetVPCBackendTemplate(vpcID, templateID int) (*VPCBackendTemp
 
 func (c *V3Client) ListVPCBackendTemplates(vpcID int) ([]VPCBackendTemplate, error) {
 	path := fmt.Sprintf("/vpcs/%d/backend-templates", vpcID)
-	resp, err := c.get(path)
+	listData, err := c.getList(path)
 	if err != nil {
 		return nil, fmt.Errorf("list backend templates for VPC %d: %w", vpcID, err)
-	}
-	var listData V3ListData
-	if err := json.Unmarshal(resp.Data, &listData); err != nil {
-		return nil, fmt.Errorf("list backend templates unmarshal outer: %w", err)
 	}
 	var tmpls []VPCBackendTemplate
 	if err := json.Unmarshal(listData.Data, &tmpls); err != nil {
@@ -139,13 +135,9 @@ func (c *V3Client) CreateVPCBackend(vpcID, templateID int, req *CreateVPCBackend
 
 func (c *V3Client) ListVPCBackends(vpcID, templateID int) ([]VPCBackend, error) {
 	path := fmt.Sprintf("/vpcs/%d/backend-templates/%d/backends", vpcID, templateID)
-	resp, err := c.get(path)
+	listData, err := c.getList(path)
 	if err != nil {
 		return nil, fmt.Errorf("list backends for template %d VPC %d: %w", templateID, vpcID, err)
-	}
-	var listData V3ListData
-	if err := json.Unmarshal(resp.Data, &listData); err != nil {
-		return nil, fmt.Errorf("list backends unmarshal outer: %w", err)
 	}
 	var backends []VPCBackend
 	if err := json.Unmarshal(listData.Data, &backends); err != nil {

@@ -12,16 +12,16 @@ type MagicMesh struct {
 }
 
 type MeshRouter struct {
-	RouterID    int     `json:"routerId"`
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	IPv4Address string  `json:"ipv4Address"`
+	RouterID    int    `json:"routerId"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	IPv4Address string `json:"ipv4Address"`
 }
 
 type CreateMagicMeshRequest struct {
-	Name        string              `json:"name"`
-	Description *string             `json:"description,omitempty"`
-	Routers     []MeshRouterEntry   `json:"routers,omitempty"`
+	Name        string            `json:"name"`
+	Description *string           `json:"description,omitempty"`
+	Routers     []MeshRouterEntry `json:"routers,omitempty"`
 }
 
 type MeshRouterEntry struct {
@@ -96,14 +96,9 @@ func (c *V3Client) DeleteMagicMesh(meshID int) error {
 func (c *V3Client) ListMeshRouters(meshID int) ([]MeshRouter, error) {
 	path := fmt.Sprintf("/cloud-routing/meshes/%d/routers", meshID)
 
-	resp, err := c.get(path)
+	listData, err := c.getList(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list routers for mesh %d: %w", meshID, err)
-	}
-
-	var listData V3ListData
-	if err := json.Unmarshal(resp.Data, &listData); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal mesh routers list envelope: %w", err)
 	}
 
 	var routers []MeshRouter

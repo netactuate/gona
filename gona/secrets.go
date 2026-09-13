@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -41,7 +42,7 @@ func (v *SecretListValue) UnmarshalJSON(data []byte) error {
 
 func (c *Client) GetSecretLists() ([]SecretList, error) {
 	var lists []SecretList
-	if err := c.get("secrets/lists", &lists); err != nil {
+	if err := c.get(context.Background(), "secrets/lists", &lists); err != nil {
 		return nil, err
 	}
 	return lists, nil
@@ -50,7 +51,7 @@ func (c *Client) GetSecretLists() ([]SecretList, error) {
 // GetSecretList returns a specific secret list by ID
 func (c *Client) GetSecretList(id int) (SecretList, error) {
 	var list SecretList
-	if err := c.get("secrets/lists/"+strconv.Itoa(id), &list); err != nil {
+	if err := c.get(context.Background(), "secrets/lists/"+strconv.Itoa(id), &list); err != nil {
 		return SecretList{}, err
 	}
 	return list, nil
@@ -61,7 +62,7 @@ func (c *Client) CreateSecretList(name string) (SecretList, error) {
 	values.Add("name", name)
 
 	var list SecretList
-	if err := c.post("secrets/lists", []byte(values.Encode()), &list); err != nil {
+	if err := c.post(context.Background(), "secrets/lists", []byte(values.Encode()), &list); err != nil {
 		return SecretList{}, err
 	}
 	return list, nil
@@ -73,14 +74,14 @@ func (c *Client) UpdateSecretList(id int, name string) (SecretList, error) {
 	values.Add("name", name)
 
 	var list SecretList
-	if err := c.post("secrets/lists/"+strconv.Itoa(id), []byte(values.Encode()), &list); err != nil {
+	if err := c.post(context.Background(), "secrets/lists/"+strconv.Itoa(id), []byte(values.Encode()), &list); err != nil {
 		return SecretList{}, err
 	}
 	return list, nil
 }
 
 func (c *Client) DeleteSecretList(id int) error {
-	if err := c.delete("secrets/lists/"+strconv.Itoa(id), nil, nil); err != nil {
+	if err := c.delete(context.Background(), "secrets/lists/"+strconv.Itoa(id), nil, nil); err != nil {
 		return err
 	}
 	return nil
@@ -89,7 +90,7 @@ func (c *Client) DeleteSecretList(id int) error {
 func (c *Client) GetSecretListValues(listID int) ([]SecretListValue, error) {
 	var values []SecretListValue
 	path := fmt.Sprintf("secrets/lists/%d/values", listID)
-	if err := c.get(path, &values); err != nil {
+	if err := c.get(context.Background(), path, &values); err != nil {
 		return nil, err
 	}
 	return values, nil
@@ -98,7 +99,7 @@ func (c *Client) GetSecretListValues(listID int) ([]SecretListValue, error) {
 func (c *Client) GetSecretListValue(listID, valueID int) (SecretListValue, error) {
 	var value SecretListValue
 	path := fmt.Sprintf("secrets/lists/%d/values/%d", listID, valueID)
-	if err := c.get(path, &value); err != nil {
+	if err := c.get(context.Background(), path, &value); err != nil {
 		return SecretListValue{}, err
 	}
 	return value, nil
@@ -111,7 +112,7 @@ func (c *Client) CreateSecretListValue(listID int, key, val string) (SecretListV
 
 	var value SecretListValue
 	path := fmt.Sprintf("secrets/lists/%d/values", listID)
-	if err := c.post(path, []byte(formValues.Encode()), &value); err != nil {
+	if err := c.post(context.Background(), path, []byte(formValues.Encode()), &value); err != nil {
 		return SecretListValue{}, err
 	}
 	return value, nil
@@ -124,7 +125,7 @@ func (c *Client) UpdateSecretListValue(listID, valueID int, key, val string) (Se
 
 	var value SecretListValue
 	path := fmt.Sprintf("secrets/lists/%d/values/%d", listID, valueID)
-	if err := c.post(path, []byte(formValues.Encode()), &value); err != nil {
+	if err := c.post(context.Background(), path, []byte(formValues.Encode()), &value); err != nil {
 		return SecretListValue{}, err
 	}
 	return value, nil
@@ -132,7 +133,7 @@ func (c *Client) UpdateSecretListValue(listID, valueID int, key, val string) (Se
 
 func (c *Client) DeleteSecretListValue(listID, valueID int) error {
 	path := fmt.Sprintf("secrets/lists/%d/values/%d", listID, valueID)
-	if err := c.delete(path, nil, nil); err != nil {
+	if err := c.delete(context.Background(), path, nil, nil); err != nil {
 		return err
 	}
 	return nil

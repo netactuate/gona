@@ -295,6 +295,39 @@ type StorageBlockVolume struct {
 	Metadata    StorageBlockVolumeMetadata `json:"metadata"`
 }
 
+// UnmarshalJSON accepts both shapes this API returns for a block volume.
+//
+// GET /storage/block-volumes/{id} returns {watchers, metadata, credentials}, with the volume's
+// own fields nested under metadata. GET /storage/block-volumes returns each row FLAT, with
+// blockVolumeId, label, ready, location, capacity and hardwareClass at the top level and no
+// metadata or credentials key at all.
+//
+// Until 2026-09-11 this struct only described the nested form, so ListStorageBlockVolumes
+// unmarshalled every row into an entirely empty StorageBlockVolume and reported no error. It
+// had never returned usable data, and nothing called it until the netactuate_storage_block_volumes
+// data source did.
+//
+// The flat row is exactly the metadata shape, so when no metadata key is present the object
+// itself is decoded as the metadata.
+func (v *StorageBlockVolume) UnmarshalJSON(data []byte) error {
+	var probe map[string]json.RawMessage
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+
+	if _, ok := probe["metadata"]; ok {
+		type alias StorageBlockVolume
+		return json.Unmarshal(data, (*alias)(v))
+	}
+
+	// Flat form: the row is the metadata.
+	if err := json.Unmarshal(data, &v.Metadata); err != nil {
+		return err
+	}
+	v.Credentials = StorageBlockCredentials{}
+	return nil
+}
+
 type StorageBlockVolumeMetadata struct {
 	BlockVolumeID int                  `json:"blockVolumeId"`
 	Label         string               `json:"label"`
@@ -328,6 +361,45 @@ func (c *V3Client) CreateStorageBlockVolume(req *CreateStorageBlockVolumeRequest
 	return created.BlockVolumeID, nil
 }
 
+// ListStorageBlockVolumes lists every block volume on the account.
+//
+// It exists because the single-volume GET cannot be trusted for the id. See
+// GetStorageBlockVolume.
+func (c *V3Client) ListStorageBlockVolumes() ([]StorageBlockVolume, error) {
+	resp, err := c.get("/storage/block-volumes")
+	if err != nil {
+		return nil, fmt.Errorf("list storage block volumes: %w", err)
+	}
+	var volumes []StorageBlockVolume
+	if err := json.Unmarshal(resp.Data, &volumes); err != nil {
+		var listed V3ListData
+		if err2 := json.Unmarshal(resp.Data, &listed); err2 != nil {
+			return nil, fmt.Errorf("list storage block volumes unmarshal: %w", err)
+		}
+		if err2 := json.Unmarshal(listed.Data, &volumes); err2 != nil {
+			return nil, fmt.Errorf("list storage block volumes unmarshal: %w", err2)
+		}
+	}
+	return volumes, nil
+}
+
+// GetStorageBlockVolume returns one block volume.
+//
+// PLATFORM DEFECT, worked around here. GET /storage/block-volumes/{id} returns
+// OBJECT STORE shaped metadata: objectStoreId, private and versioning, and no
+// blockVolumeId at all. Verified live on 2026-09-11 against volume 230, created moments
+// earlier, where the LIST endpoint reported blockVolumeId 230 correctly and the single
+// GET reported metadata keys
+//
+//	objectStoreId, location, ready, capacity, usage, hardwareClass, label, private,
+//	assignedOn, versioning
+//
+// So the id read back as zero and no caller could match a volume to its own resource.
+// Found by the W15 acceptance suite asserting the API id against the Terraform id.
+//
+// The workaround reads the single GET first, because it carries the credentials, and
+// falls back to the list when the id is missing so the caller gets a usable object. When
+// the platform fixes the endpoint this fallback simply stops firing.
 func (c *V3Client) GetStorageBlockVolume(blockVolumeID int) (*StorageBlockVolume, error) {
 	path := fmt.Sprintf("/storage/block-volumes/%d", blockVolumeID)
 	resp, err := c.get(path)
@@ -338,6 +410,19 @@ func (c *V3Client) GetStorageBlockVolume(blockVolumeID int) (*StorageBlockVolume
 	if err := json.Unmarshal(resp.Data, &vol); err != nil {
 		return nil, fmt.Errorf("get storage block volume %d unmarshal: %w", blockVolumeID, err)
 	}
+	if vol.Metadata.BlockVolumeID != 0 {
+		return &vol, nil
+	}
+	// The record returned IS the volume that was asked for: the GET succeeded on this id
+	// and the label and location match. Only the id field is wrong, so fill in the id that
+	// was requested rather than going looking for it.
+	//
+	// An earlier version of this fix fell back to the account listing and returned
+	// not-found when the volume was absent from it. That was wrong during provisioning: a
+	// freshly created volume is not listed yet, so the ready-wait loop received a
+	// not-found for a volume that existed and gave up. Asking the list a question the
+	// single GET has already answered was the mistake.
+	vol.Metadata.BlockVolumeID = blockVolumeID
 	return &vol, nil
 }
 

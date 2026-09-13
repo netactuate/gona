@@ -87,13 +87,9 @@ func (c *V3Client) DeleteVPCFloatingIP(vpcID, floatingIPID int) error {
 
 func (c *V3Client) ListVPCFloatingIPs(vpcID int) ([]VPCFloatingIP, error) {
 	path := fmt.Sprintf("/vpcs/%d/floating-ips", vpcID)
-	resp, err := c.get(path)
+	listData, err := c.getList(path)
 	if err != nil {
 		return nil, fmt.Errorf("list floating IPs for VPC %d: %w", vpcID, err)
-	}
-	var listData V3ListData
-	if err := json.Unmarshal(resp.Data, &listData); err != nil {
-		return nil, fmt.Errorf("list floating IPs unmarshal outer: %w", err)
 	}
 	var fips []VPCFloatingIP
 	if err := json.Unmarshal(listData.Data, &fips); err != nil {

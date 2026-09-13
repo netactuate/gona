@@ -77,13 +77,9 @@ func (c *V3Client) CreateVPCSNATRule(vpcID int, req *CreateVPCSNATRuleRequest) (
 
 func (c *V3Client) ListVPCSNATRules(vpcID, ipVersion int) ([]VPCSNATRule, error) {
 	path := fmt.Sprintf("/vpcs/%d/gateway/rules/snat/ipv%d", vpcID, ipVersion)
-	resp, err := c.get(path)
+	listData, err := c.getList(path)
 	if err != nil {
 		return nil, fmt.Errorf("list SNAT rules for VPC %d: %w", vpcID, err)
-	}
-	var listData V3ListData
-	if err := json.Unmarshal(resp.Data, &listData); err != nil {
-		return nil, fmt.Errorf("list SNAT rules unmarshal outer: %w", err)
 	}
 	var rules []VPCSNATRule
 	if err := json.Unmarshal(listData.Data, &rules); err != nil {

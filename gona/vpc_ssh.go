@@ -64,13 +64,9 @@ func (c *V3Client) UpdateVPCSSHSettings(vpcID int, req *UpdateVPCSSHSettingsRequ
 
 func (c *V3Client) ListVPCSSHKeys(vpcID int) ([]VPCSSHKey, error) {
 	path := fmt.Sprintf("/vpcs/%d/ssh/keys", vpcID)
-	resp, err := c.get(path)
+	listData, err := c.getList(path)
 	if err != nil {
 		return nil, fmt.Errorf("list SSH keys for VPC %d: %w", vpcID, err)
-	}
-	var listData V3ListData
-	if err := json.Unmarshal(resp.Data, &listData); err != nil {
-		return nil, fmt.Errorf("list SSH keys unmarshal outer: %w", err)
 	}
 	var keys []VPCSSHKey
 	if err := json.Unmarshal(listData.Data, &keys); err != nil {

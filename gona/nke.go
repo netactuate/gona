@@ -30,6 +30,7 @@ type NKECluster struct {
 	ClusterID           int    `json:"clusterId"`
 	Name                string `json:"name"`
 	ContractID          int    `json:"contractId"`
+	VpcID               int    `json:"vpcId"`
 	Replicas            int    `json:"replicas"`
 	DoAutoscaling       int    `json:"doAutoscaling"` // 0 or 1 from API
 	IsDualStack         bool   `json:"isDualStack"`
@@ -75,16 +76,23 @@ type NKECluster struct {
 }
 
 type CreateNKEClusterRequest struct {
-	Name             string               `json:"name"`
-	Version          string               `json:"version"`
-	Replicas         int                  `json:"replicas"`
-	MinimumNodes     int                  `json:"minimumNodes"`
-	MaximumNodes     int                  `json:"maximumNodes"`
-	DoAutoscaling bool                 `json:"doAutoscaling"`
-	DoDualStack   bool                 `json:"doDualStack"`
-	Billing       NKEBilling           `json:"billing"`
-	AddonsToInstall  *NKEAddons           `json:"addonsToInstall,omitempty"`
-	Tags             []NKEClusterTagInput `json:"tags,omitempty"`
+	Name            string               `json:"name"`
+	Version         string               `json:"version"`
+	Replicas        int                  `json:"replicas"`
+	MinimumNodes    int                  `json:"minimumNodes"`
+	MaximumNodes    int                  `json:"maximumNodes"`
+	DoAutoscaling   bool                 `json:"doAutoscaling"`
+	DoDualStack     bool                 `json:"doDualStack"`
+	Billing         NKEBilling           `json:"billing"`
+	Networking      *NKEClusterNetwork   `json:"networking,omitempty"`
+	AddonsToInstall *NKEAddons           `json:"addonsToInstall,omitempty"`
+	Tags            []NKEClusterTagInput `json:"tags,omitempty"`
+}
+
+type NKEClusterNetwork struct {
+	VpcID       int    `json:"vpcId,omitempty"`
+	PodCIDR     string `json:"podCidr,omitempty"`
+	ServiceCIDR string `json:"serviceCidr,omitempty"`
 }
 
 type NKEUpdateNodes struct {
@@ -140,13 +148,9 @@ func (c *V3Client) ListNKEVersions() ([]string, error) {
 }
 
 func (c *V3Client) ListNKEClusters() ([]NKECluster, error) {
-	resp, err := c.get("/nke/clusters")
+	listData, err := c.getList("/nke/clusters")
 	if err != nil {
 		return nil, fmt.Errorf("list NKE clusters: %w", err)
-	}
-	var listData V3ListData
-	if err := json.Unmarshal(resp.Data, &listData); err != nil {
-		return nil, fmt.Errorf("list NKE clusters unmarshal: %w", err)
 	}
 	var clusters []NKECluster
 	if err := json.Unmarshal(listData.Data, &clusters); err != nil {
@@ -219,13 +223,9 @@ func (c *V3Client) GenerateNKEKubeconfig(clusterID int, expirationSeconds int) (
 
 func (c *V3Client) ListNKEClusterLogs(clusterID int) ([]NKELogEntry, error) {
 	path := fmt.Sprintf("/nke/clusters/%d/logs", clusterID)
-	resp, err := c.get(path)
+	listData, err := c.getList(path)
 	if err != nil {
 		return nil, fmt.Errorf("get NKE cluster %d logs: %w", clusterID, err)
-	}
-	var listData V3ListData
-	if err := json.Unmarshal(resp.Data, &listData); err != nil {
-		return nil, fmt.Errorf("NKE cluster logs unmarshal: %w", err)
 	}
 	var entries []NKELogEntry
 	if err := json.Unmarshal(listData.Data, &entries); err != nil {
@@ -236,13 +236,9 @@ func (c *V3Client) ListNKEClusterLogs(clusterID int) ([]NKELogEntry, error) {
 
 func (c *V3Client) ListNKEWorkerNodes(clusterID int) ([]NKEWorkerNode, error) {
 	path := fmt.Sprintf("/nke/clusters/%d/worker-nodes", clusterID)
-	resp, err := c.get(path)
+	listData, err := c.getList(path)
 	if err != nil {
 		return nil, fmt.Errorf("list NKE worker nodes for cluster %d: %w", clusterID, err)
-	}
-	var listData V3ListData
-	if err := json.Unmarshal(resp.Data, &listData); err != nil {
-		return nil, fmt.Errorf("list NKE worker nodes unmarshal: %w", err)
 	}
 	var nodes []NKEWorkerNode
 	if err := json.Unmarshal(listData.Data, &nodes); err != nil {

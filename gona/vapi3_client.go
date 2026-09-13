@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -86,7 +88,7 @@ func NewV3Client(apiKey, baseURL string) *V3Client {
 	}
 }
 
-func (c *V3Client) debugLog(format string, v ...any) {
+func (c *V3Client) debugLog(format string, v ...interface{}) {
 	if !c.debug {
 		return
 	}
@@ -129,7 +131,7 @@ func (c *V3Client) doRequest(method, path string, body interface{}) (*V3APIRespo
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	c.debugLog("%s %s", method, fullURL)
+	c.debugLog("%s %s", method, redactV3URL(fullURL))
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -170,7 +172,7 @@ func (c *V3Client) doRequest(method, path string, body interface{}) (*V3APIRespo
 			method, path, resp.StatusCode, string(respBody))
 	}
 
-	if apiResp.Code != 0 && apiResp.Code != 200 {
+	if apiResp.Code != 0 && (apiResp.Code < 200 || apiResp.Code >= 300) {
 		var pretty bytes.Buffer
 		if err := json.Indent(&pretty, respBody, "", "  "); err == nil {
 			return &apiResp, fmt.Errorf("API error on %s %s: code %d\n%s",
@@ -185,6 +187,110 @@ func (c *V3Client) doRequest(method, path string, body interface{}) (*V3APIRespo
 
 func (c *V3Client) get(path string) (*V3APIResponse, error) {
 	return c.doRequest("GET", path, nil)
+}
+
+// unwrapV3List reads the {meta,data} pagination envelope out of a vAPI3 response body.
+//
+// Most families put it directly at data.{meta,data}. Some nest it under a named key instead:
+// OIDC auth and change logs arrive as data.logs.{meta,data} and client keys as
+// data.keys.{meta,data}. Passing the empty key selects the flat shape. Getting this wrong is
+// silent rather than loud: the envelope unmarshals fine, the inner Data is nil, and the failure
+// surfaces later as "unexpected end of JSON input", which is what three OIDC acceptance tests
+// hit on 2026-09-11.
+func unwrapV3List(raw json.RawMessage, key string) (V3ListData, error) {
+	if key != "" {
+		var nested map[string]json.RawMessage
+		if err := json.Unmarshal(raw, &nested); err != nil {
+			return V3ListData{}, err
+		}
+		inner, ok := nested[key]
+		if !ok {
+			return V3ListData{}, fmt.Errorf("vAPI3 list response has no %q key", key)
+		}
+		raw = inner
+	}
+
+	var listData V3ListData
+	if err := json.Unmarshal(raw, &listData); err != nil {
+		return V3ListData{}, err
+	}
+	return listData, nil
+}
+
+func (c *V3Client) getList(path string) (*V3ListData, error) {
+	return c.getListUnder(path, "")
+}
+
+func (c *V3Client) getListUnder(path, key string) (*V3ListData, error) {
+	resp, err := c.get(path)
+	if err != nil {
+		return nil, err
+	}
+
+	listData, err := unwrapV3List(resp.Data, key)
+	if err != nil {
+		return nil, err
+	}
+
+	var allData []json.RawMessage
+	if err := json.Unmarshal(listData.Data, &allData); err != nil {
+		return nil, err
+	}
+
+	meta := listData.Meta
+	for meta.Total > 0 && meta.Limit > 0 && meta.Offset+meta.Limit < meta.Total {
+		nextOffset := meta.Offset + meta.Limit
+		nextPath, err := v3ListPagePath(path, nextOffset, meta.Limit)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := c.get(nextPath)
+		if err != nil {
+			return nil, err
+		}
+
+		nextListData, err := unwrapV3List(resp.Data, key)
+		if err != nil {
+			return nil, err
+		}
+
+		var pageData []json.RawMessage
+		if err := json.Unmarshal(nextListData.Data, &pageData); err != nil {
+			return nil, err
+		}
+
+		allData = append(allData, pageData...)
+
+		// Guard against a page that does not advance. Verified 2026-09-10 that vAPI3
+		// honours offset and echoes it back, so this should never fire, but a list call
+		// that loops forever against the API is a worse bug than the truncation this
+		// helper exists to fix. Fail closed with what we have rather than spin.
+		if nextListData.Meta.Offset <= meta.Offset || len(pageData) == 0 {
+			break
+		}
+		meta = nextListData.Meta
+	}
+
+	data, err := json.Marshal(allData)
+	if err != nil {
+		return nil, err
+	}
+	listData.Data = data
+	return &listData, nil
+}
+
+func v3ListPagePath(path string, offset, limit int) (string, error) {
+	u, err := url.Parse(path)
+	if err != nil {
+		return "", err
+	}
+
+	query := u.Query()
+	query.Set("offset", strconv.Itoa(offset))
+	query.Set("limit", strconv.Itoa(limit))
+	u.RawQuery = query.Encode()
+	return u.String(), nil
 }
 
 func (c *V3Client) post(path string, body interface{}) (*V3APIResponse, error) {
@@ -212,12 +318,27 @@ func (e *V3NotFoundError) Error() string {
 	return fmt.Sprintf("resource not found (HTTP %d): %s", e.StatusCode, e.Body)
 }
 
+// redactV3URL strips the API key from a V3 URL before it reaches the debug log.
+// Same reasoning as redactURL in client.go: the key travels as a query parameter.
+func redactV3URL(u *url.URL) string {
+	if u == nil {
+		return ""
+	}
+	c := *u
+	q := c.Query()
+	if q.Get("key") != "" {
+		q.Set("key", "REDACTED")
+		c.RawQuery = q.Encode()
+	}
+	return c.String()
+}
+
 func IsV3NotFound(err error) bool {
 	if err == nil {
 		return false
 	}
-	_, ok := err.(*V3NotFoundError)
-	return ok
+	var notFound *V3NotFoundError
+	return errors.As(err, &notFound)
 }
 
 // isTransientServerError returns true for 5xx errors that are likely transient

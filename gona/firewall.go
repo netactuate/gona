@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -122,7 +123,7 @@ type CreateFirewallRuleRequest struct {
 
 func (c *Client) GetFirewallSets() ([]FirewallSet, error) {
 	var sets []FirewallSet
-	if err := c.get("firewall/sets", &sets); err != nil {
+	if err := c.get(context.Background(), "firewall/sets", &sets); err != nil {
 		return nil, err
 	}
 	return sets, nil
@@ -130,7 +131,7 @@ func (c *Client) GetFirewallSets() ([]FirewallSet, error) {
 
 func (c *Client) GetFirewallSet(id int) (FirewallSet, error) {
 	var set FirewallSet
-	if err := c.get("firewall/sets/"+strconv.Itoa(id), &set); err != nil {
+	if err := c.get(context.Background(), "firewall/sets/"+strconv.Itoa(id), &set); err != nil {
 		return FirewallSet{}, err
 	}
 	return set, nil
@@ -147,7 +148,7 @@ func (c *Client) CreateFirewallSet(name, description string, enabled bool) (Fire
 	}
 
 	var set FirewallSet
-	if err := c.post("firewall/sets", []byte(values.Encode()), &set); err != nil {
+	if err := c.post(context.Background(), "firewall/sets", []byte(values.Encode()), &set); err != nil {
 		return FirewallSet{}, err
 	}
 	return set, nil
@@ -164,27 +165,27 @@ func (c *Client) UpdateFirewallSet(id int, name, description string, enabled boo
 	}
 
 	var set FirewallSet
-	if err := c.put("firewall/sets/"+strconv.Itoa(id), []byte(values.Encode()), &set); err != nil {
+	if err := c.put(context.Background(), "firewall/sets/"+strconv.Itoa(id), []byte(values.Encode()), &set); err != nil {
 		return FirewallSet{}, err
 	}
 	return set, nil
 }
 
 func (c *Client) DeleteFirewallSet(id int) error {
-	return c.delete("firewall/sets/"+strconv.Itoa(id), nil, nil)
+	return c.delete(context.Background(), "firewall/sets/"+strconv.Itoa(id), nil, nil)
 }
 
 func (c *Client) EnableFirewallSet(id int) error {
-	return c.put("firewall/sets/"+strconv.Itoa(id)+"/enable", []byte{}, nil)
+	return c.put(context.Background(), "firewall/sets/"+strconv.Itoa(id)+"/enable", []byte{}, nil)
 }
 
 func (c *Client) DisableFirewallSet(id int) error {
-	return c.put("firewall/sets/"+strconv.Itoa(id)+"/disable", []byte{}, nil)
+	return c.put(context.Background(), "firewall/sets/"+strconv.Itoa(id)+"/disable", []byte{}, nil)
 }
 
 func (c *Client) CreateDraftFirewallSet(id int) (FirewallSet, error) {
 	var set FirewallSet
-	if err := c.post("firewall/sets/"+strconv.Itoa(id)+"/create-draft", []byte{}, &set); err != nil {
+	if err := c.post(context.Background(), "firewall/sets/"+strconv.Itoa(id)+"/create-draft", []byte{}, &set); err != nil {
 		return FirewallSet{}, err
 	}
 	return set, nil
@@ -192,24 +193,24 @@ func (c *Client) CreateDraftFirewallSet(id int) (FirewallSet, error) {
 
 func (c *Client) PublishDraftFirewallSet(draftID int) (FirewallSet, error) {
 	var set FirewallSet
-	if err := c.post("firewall/sets/publish-draft/"+strconv.Itoa(draftID), []byte{}, &set); err != nil {
+	if err := c.post(context.Background(), "firewall/sets/publish-draft/"+strconv.Itoa(draftID), []byte{}, &set); err != nil {
 		return FirewallSet{}, err
 	}
 	return set, nil
 }
 
 func (c *Client) DeleteDraftFirewallSet(draftID int) error {
-	return c.delete("firewall/sets/delete-draft/"+strconv.Itoa(draftID), nil, nil)
+	return c.delete(context.Background(), "firewall/sets/delete-draft/"+strconv.Itoa(draftID), nil, nil)
 }
 
 func (c *Client) SyncFirewallSetRules(setID int) error {
-	return c.post("firewall/sets/"+strconv.Itoa(setID)+"/vm/sync-all", []byte{}, nil)
+	return c.post(context.Background(), "firewall/sets/"+strconv.Itoa(setID)+"/vm/sync-all", []byte{}, nil)
 }
 
 func (c *Client) GetFirewallRules(setID int) ([]FirewallRule, error) {
 	var rules []FirewallRule
 	path := fmt.Sprintf("firewall/sets/%d/rules", setID)
-	if err := c.get(path, &rules); err != nil {
+	if err := c.get(context.Background(), path, &rules); err != nil {
 		return nil, err
 	}
 	return rules, nil
@@ -218,7 +219,7 @@ func (c *Client) GetFirewallRules(setID int) ([]FirewallRule, error) {
 func (c *Client) GetFirewallRule(setID, ruleID int) (FirewallRule, error) {
 	var rule FirewallRule
 	path := fmt.Sprintf("firewall/sets/%d/rules/%d", setID, ruleID)
-	if err := c.get(path, &rule); err != nil {
+	if err := c.get(context.Background(), path, &rule); err != nil {
 		return FirewallRule{}, err
 	}
 	return rule, nil
@@ -232,7 +233,7 @@ func (c *Client) CreateFirewallRule(setID int, req *CreateFirewallRuleRequest) (
 
 	var rule FirewallRule
 	path := fmt.Sprintf("firewall/sets/%d/rules", setID)
-	if err := c.postJSON(path, body, &rule); err != nil {
+	if err := c.postJSON(context.Background(), path, body, &rule); err != nil {
 		return FirewallRule{}, err
 	}
 	return rule, nil
@@ -246,7 +247,7 @@ func (c *Client) UpdateFirewallRule(setID, ruleID int, req *CreateFirewallRuleRe
 
 	var rule FirewallRule
 	path := fmt.Sprintf("firewall/%d/%d", setID, ruleID)
-	if err := c.putJSON(path, body, &rule); err != nil {
+	if err := c.putJSON(context.Background(), path, body, &rule); err != nil {
 		return FirewallRule{}, err
 	}
 	return rule, nil
@@ -254,7 +255,7 @@ func (c *Client) UpdateFirewallRule(setID, ruleID int, req *CreateFirewallRuleRe
 
 func (c *Client) DeleteFirewallRule(setID, ruleID int) error {
 	path := fmt.Sprintf("firewall/%d/rules/%d", setID, ruleID)
-	return c.delete(path, nil, nil)
+	return c.delete(context.Background(), path, nil, nil)
 }
 
 // FirewallSetVM represents a VM attached to a firewall set
@@ -307,7 +308,7 @@ type attachVMEntry struct {
 func (c *Client) GetFirewallSetVMs(setID int) ([]FirewallSetVM, error) {
 	var vms []FirewallSetVM
 	path := fmt.Sprintf("firewall/sets/%d/vm-list", setID)
-	if err := c.get(path, &vms); err != nil {
+	if err := c.get(context.Background(), path, &vms); err != nil {
 		return nil, err
 	}
 	return vms, nil
@@ -330,7 +331,7 @@ func (c *Client) AttachFirewallSetVM(setID, mbpkgid, interfaceID, setPriority in
 
 	var vms []FirewallSetVM
 	path := fmt.Sprintf("firewall/sets/%d/vm/attach", setID)
-	if err := c.postJSON(path, body, &vms); err != nil {
+	if err := c.postJSON(context.Background(), path, body, &vms); err != nil {
 		return nil, err
 	}
 	return vms, nil
@@ -338,5 +339,5 @@ func (c *Client) AttachFirewallSetVM(setID, mbpkgid, interfaceID, setPriority in
 
 func (c *Client) DetachFirewallSetVM(setID, mbpkgid int) error {
 	path := fmt.Sprintf("firewall/sets/%d/vm/detach/%d", setID, mbpkgid)
-	return c.post(path, []byte{}, nil)
+	return c.post(context.Background(), path, []byte{}, nil)
 }

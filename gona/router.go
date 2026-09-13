@@ -180,14 +180,69 @@ func (c *V3Client) DeleteRouter(routerID int) error {
 	return nil
 }
 
+// WaitForRouterReady waits with the package default. Prefer WaitForRouterReadyTimeout so the
+// caller can supply the resource's own timeout.
+//
+// A cloud router provisions in about five minutes. A wait that runs much beyond that is
+// sitting on a STALLED build, not a slow one, and should fail rather than keep waiting.
 func (c *V3Client) WaitForRouterReady(routerID int) error {
-	return c.waitForCondition(func() (bool, error) {
+	return c.WaitForRouterReadyTimeout(routerID, RouterWaitConfig.Timeout)
+}
+
+// WaitForRouterReadyTimeout waits up to the supplied timeout.
+func (c *V3Client) WaitForRouterReadyTimeout(routerID int, timeout time.Duration) error {
+	cfg := RouterWaitConfig
+	if timeout > 0 {
+		cfg.Timeout = timeout
+	}
+	// Watch PROGRESS, not just elapsed time.
+	//
+	// A cloud router build reports seven timestamped steps, and a healthy one completes in
+	// about five minutes with each step a minute or two apart. When the build stalls, the
+	// remaining steps simply keep a null date forever: there is no failure state and
+	// readyOn never gets set, so a stalled build and a slow one are indistinguishable to
+	// any client that only watches the clock.
+	//
+	// That cost real time on 2026-09-10, when three routers stalled at "Cloud Router
+	// configured" and a test harness sat on one for over three hours before anyone looked.
+	// Waiting longer never produces information.
+	//
+	// So track how many steps have completed. If none completes within RouterStallAfter,
+	// give up and say WHICH step is stuck, which is the one fact worth reporting.
+	var lastCount int
+	lastProgress := time.Now()
+
+	err := c.waitForCondition(func() (bool, error) {
 		router, err := c.GetRouter(routerID)
 		if err != nil {
 			return false, err
 		}
-		isReady := router.ReadyOn != nil
-		c.debugLog("Router %d ready status: %v (readyOn: %v)", routerID, isReady, router.ReadyOn)
-		return isReady, nil
-	}, RouterWaitConfig)
+		if router.ReadyOn != nil {
+			return true, nil
+		}
+
+		done, pending := 0, ""
+		for _, e := range router.Build {
+			if !e.Date.IsZero() {
+				done++
+			} else if pending == "" {
+				pending = e.Text
+			}
+		}
+		if done > lastCount {
+			lastCount = done
+			lastProgress = time.Now()
+		}
+		c.debugLog("Router %d build: %d steps done, waiting on %q", routerID, done, pending)
+
+		if stalled := time.Since(lastProgress); stalled > RouterStallAfter {
+			return false, fmt.Errorf(
+				"router %d build has made no progress for %s: %d of %d steps complete, stuck on %q. "+
+					"A healthy build finishes in about five minutes, so this is a stalled build rather than a slow one",
+				routerID, stalled.Round(time.Second), done, len(router.Build), pending)
+		}
+		return false, nil
+	}, cfg)
+
+	return err
 }

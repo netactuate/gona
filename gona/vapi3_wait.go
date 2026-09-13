@@ -12,9 +12,14 @@ type V3WaitConfig struct {
 
 var (
 	StorageWaitConfig = V3WaitConfig{Interval: 10 * time.Second, Timeout: 2 * time.Minute}
-	VPCWaitConfig     = V3WaitConfig{Interval: 1 * time.Minute, Timeout: 10 * time.Minute}  //1min
+	VPCWaitConfig     = V3WaitConfig{Interval: 1 * time.Minute, Timeout: 10 * time.Minute} //1min
 	NKEWaitConfig     = V3WaitConfig{Interval: 1 * time.Minute, Timeout: 15 * time.Minute}
 	RouterWaitConfig  = V3WaitConfig{Interval: 10 * time.Second, Timeout: 10 * time.Minute}
+
+	// RouterStallAfter is how long a cloud router build may make NO progress before it is
+	// treated as stalled. A healthy build completes seven steps in about five minutes, so
+	// five minutes without a single step completing means it is stuck, not slow.
+	RouterStallAfter = 5 * time.Minute
 )
 
 func (c *V3Client) waitForCondition(checkFn func() (bool, error), config V3WaitConfig) error {

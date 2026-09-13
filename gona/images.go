@@ -1,6 +1,7 @@
 package gona
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -77,7 +78,7 @@ type ImageQueueStatus struct {
 
 func (c *Client) GetMyImages() ([]Image, error) {
 	var images []Image
-	if err := c.get("cloud/images/my", &images); err != nil {
+	if err := c.get(context.Background(), "cloud/images/my", &images); err != nil {
 		return nil, err
 	}
 	return images, nil
@@ -85,7 +86,7 @@ func (c *Client) GetMyImages() ([]Image, error) {
 
 func (c *Client) GetImage(id int) (Image, error) {
 	var image Image
-	if err := c.get("cloud/images/"+strconv.Itoa(id), &image); err != nil {
+	if err := c.get(context.Background(), "cloud/images/"+strconv.Itoa(id), &image); err != nil {
 		return Image{}, err
 	}
 	return image, nil
@@ -103,7 +104,7 @@ func (c *Client) CreateImage(req *CreateImageRequest) (CreateImageResponse, erro
 	}
 
 	var resp CreateImageResponse
-	if err := c.post("cloud/images/create", []byte(values.Encode()), &resp); err != nil {
+	if err := c.post(context.Background(), "cloud/images/create", []byte(values.Encode()), &resp); err != nil {
 		return CreateImageResponse{}, err
 	}
 	return resp, nil
@@ -119,12 +120,12 @@ func (c *Client) EditImage(id int, name, description string) error {
 		return err
 	}
 
-	return c.patch("cloud/images/"+strconv.Itoa(id)+"/edit", bodyBytes, nil)
+	return c.patch(context.Background(), "cloud/images/"+strconv.Itoa(id)+"/edit", bodyBytes, nil)
 }
 
 func (c *Client) DeleteImage(id int) (DeleteImageResponse, error) {
 	var resp DeleteImageResponse
-	if err := c.delete("cloud/images/"+strconv.Itoa(id)+"/delete", nil, &resp); err != nil {
+	if err := c.delete(context.Background(), "cloud/images/"+strconv.Itoa(id)+"/delete", nil, &resp); err != nil {
 		return DeleteImageResponse{}, err
 	}
 	return resp, nil
@@ -132,7 +133,7 @@ func (c *Client) DeleteImage(id int) (DeleteImageResponse, error) {
 
 func (c *Client) GetImageQueueStatus(queueID int) (ImageQueueStatus, error) {
 	var status ImageQueueStatus
-	if err := c.get("cloud/images/queue_status/"+strconv.Itoa(queueID), &status); err != nil {
+	if err := c.get(context.Background(), "cloud/images/queue_status/"+strconv.Itoa(queueID), &status); err != nil {
 		return ImageQueueStatus{}, err
 	}
 	return status, nil
