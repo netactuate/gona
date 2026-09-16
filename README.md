@@ -6,8 +6,10 @@ and covers cloud and dedicated compute, VPCs and their gateways, load balancers,
 anycast, object and block storage, DNS, secrets, tags, OIDC, and NKE clusters with their
 add-ons.
 
-The full API reference is published at
+The full Go API reference is published at
 [pkg.go.dev/github.com/netactuate/gona](https://pkg.go.dev/github.com/netactuate/gona/gona).
+For the platform itself, its concepts and the REST API behind this client, see the
+[NetActuate documentation](https://netactuate.com/docs).
 
 ## Requirements
 
