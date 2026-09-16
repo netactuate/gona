@@ -58,6 +58,23 @@ type UpdateRouterVRFTunnelResponse struct {
 	TunnelID int `json:"tunnelId"`
 }
 
+// ListRouterVRFTunnels returns all tunnels configured on a router VRF.
+func (c *V3Client) ListRouterVRFTunnels(routerID int, vrfID int) ([]RouterVRFTunnel, error) {
+	path := fmt.Sprintf("/cloud-routing/routers/%d/config/vrfs/%d/tunnels", routerID, vrfID)
+
+	resp, err := c.get(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list tunnels for VRF %d on router %d: %w", vrfID, routerID, err)
+	}
+
+	var tunnels []RouterVRFTunnel
+	if err := json.Unmarshal(resp.Data, &tunnels); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal tunnel list response: %w", err)
+	}
+
+	return tunnels, nil
+}
+
 func (c *V3Client) GetRouterVRFTunnel(routerID int, vrfID int, tunnelID int) (*RouterVRFTunnel, error) {
 	path := fmt.Sprintf("/cloud-routing/routers/%d/config/vrfs/%d/tunnels/%d", routerID, vrfID, tunnelID)
 

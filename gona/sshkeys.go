@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-// SSHKey Struct 
+// SSHKey Struct
 type SSHKey struct {
 	ID          int    `json:"id"`
 	Name        string `json:"name"`
@@ -28,14 +28,13 @@ func (c *Client) GetSSHKeys() (keys []SSHKey, err error) {
 // GetSSHKey returns one SSH key.
 //
 // An SSH key that no longer exists does NOT 404 and does NOT 422. vAPI2 answers
-// GET account/ssh_key/{id} with 200 and a null data member, verified live 2026-09-10
-// against id 99999999:
+// GET account/ssh_key/{id} with 200 and a null data member:
 //
 //	{"result":"success","message":null,"meta":[],"data":null,"code":200}
 //
 // Unmarshalled into a struct that is silently the zero value, so without the check below
 // this returns SSHKey{} and a nil error, and resourceSshKeyRead then writes an empty name
-// and an empty key into Terraform state instead of removing the resource. That is B-08's
+// and an empty key into Terraform state instead of removing the resource. That is
 // silent state corruption, which is worse than a loud error because a plan afterwards looks
 // plausible and proposes to "restore" a key that is gone.
 //

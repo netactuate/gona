@@ -87,6 +87,23 @@ type UpdateRouterVRFBGPNeighborResponse struct {
 	NeighborID int `json:"neighborId"`
 }
 
+// ListRouterVRFBGPNeighbors returns the BGP neighbors configured for a router VRF.
+func (c *V3Client) ListRouterVRFBGPNeighbors(routerID int, vrfID int) ([]RouterVRFBGPNeighbor, error) {
+	path := fmt.Sprintf("/cloud-routing/routers/%d/config/vrfs/%d/bgp/neighbors", routerID, vrfID)
+
+	resp, err := c.get(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list BGP neighbors for VRF %d on router %d: %w", vrfID, routerID, err)
+	}
+
+	var neighbors []RouterVRFBGPNeighbor
+	if err := json.Unmarshal(resp.Data, &neighbors); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal BGP neighbor list response: %w", err)
+	}
+
+	return neighbors, nil
+}
+
 func (c *V3Client) CreateRouterVRFBGPNeighbor(routerID int, vrfID int, req CreateRouterVRFBGPNeighborRequest) (*CreateRouterVRFBGPNeighborResponse, error) {
 	path := fmt.Sprintf("/cloud-routing/routers/%d/config/vrfs/%d/bgp/neighbors", routerID, vrfID)
 

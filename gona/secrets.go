@@ -96,6 +96,15 @@ func (c *Client) GetSecretListValues(listID int) ([]SecretListValue, error) {
 	return values, nil
 }
 
+// GetAllSecretValues returns every secret value visible to the account.
+func (c *Client) GetAllSecretValues() ([]SecretListValue, error) {
+	var values []SecretListValue
+	if err := c.get(context.Background(), "secrets/all-values", &values); err != nil {
+		return nil, fmt.Errorf("get all secret values: %w", err)
+	}
+	return values, nil
+}
+
 func (c *Client) GetSecretListValue(listID, valueID int) (SecretListValue, error) {
 	var value SecretListValue
 	path := fmt.Sprintf("secrets/lists/%d/values/%d", listID, valueID)

@@ -344,15 +344,32 @@ type OIDCClientVM struct {
 	Raw     json.RawMessage `json:"-"`
 }
 
+type OIDCClientBareMetalServer struct {
+	MBPkgID int             `json:"mbpkgid"`
+	Raw     json.RawMessage `json:"-"`
+}
+
 type oidcClientVMsResponse struct {
 	VMs []json.RawMessage `json:"vms"`
+}
+
+type oidcClientBareMetalServersResponse struct {
+	Servers []json.RawMessage `json:"servers"`
 }
 
 type addOIDCClientVMsRequest struct {
 	VMs []oidcClientVMRequest `json:"vms"`
 }
 
+type addOIDCClientBareMetalServersRequest struct {
+	Servers []oidcClientBareMetalServerRequest `json:"servers"`
+}
+
 type oidcClientVMRequest struct {
+	MBPkgID int `json:"mbpkgid"`
+}
+
+type oidcClientBareMetalServerRequest struct {
 	MBPkgID int `json:"mbpkgid"`
 }
 
@@ -368,10 +385,32 @@ func (c *V3Client) AddOIDCClientVMs(clientID int, mbpkgids []int) error {
 	return nil
 }
 
+// AddOIDCClientBareMetalServers allows bare metal servers to access an OIDC client.
+func (c *V3Client) AddOIDCClientBareMetalServers(clientID int, mbpkgids []int) error {
+	servers := make([]oidcClientBareMetalServerRequest, len(mbpkgids))
+	for i, mbpkgid := range mbpkgids {
+		servers[i] = oidcClientBareMetalServerRequest{MBPkgID: mbpkgid}
+	}
+	_, err := c.post(fmt.Sprintf("/oidc/clients/%d/allow-list/bare-metal", clientID), &addOIDCClientBareMetalServersRequest{Servers: servers})
+	if err != nil {
+		return fmt.Errorf("add OIDC client %d bare metal servers: %w", clientID, err)
+	}
+	return nil
+}
+
 func (c *V3Client) RemoveOIDCClientVM(clientID, mbpkgid int) error {
 	_, err := c.del(fmt.Sprintf("/oidc/clients/%d/allow-list/vms/%d", clientID, mbpkgid))
 	if err != nil {
 		return fmt.Errorf("remove OIDC client %d VM %d: %w", clientID, mbpkgid, err)
+	}
+	return nil
+}
+
+// RemoveOIDCClientBareMetalServer revokes a bare metal server from an OIDC client.
+func (c *V3Client) RemoveOIDCClientBareMetalServer(clientID, mbpkgid int) error {
+	_, err := c.del(fmt.Sprintf("/oidc/clients/%d/allow-list/bare-metal/%d", clientID, mbpkgid))
+	if err != nil {
+		return fmt.Errorf("remove OIDC client %d bare metal server %d: %w", clientID, mbpkgid, err)
 	}
 	return nil
 }
@@ -402,6 +441,35 @@ func (c *V3Client) GetOIDCClientVMs(clientID int) ([]OIDCClientVM, error) {
 		vms = append(vms, vm)
 	}
 	return vms, nil
+}
+
+// GetOIDCClientBareMetalServers returns bare metal servers allowed to access an OIDC client.
+func (c *V3Client) GetOIDCClientBareMetalServers(clientID int) ([]OIDCClientBareMetalServer, error) {
+	resp, err := c.get(fmt.Sprintf("/oidc/clients/%d/allow-list/bare-metal", clientID))
+	if err != nil {
+		return nil, fmt.Errorf("get OIDC client %d bare metal servers: %w", clientID, err)
+	}
+	var wrapped oidcClientBareMetalServersResponse
+	if err := json.Unmarshal(resp.Data, &wrapped); err != nil {
+		return nil, fmt.Errorf("get OIDC client %d bare metal servers unmarshal: %w", clientID, err)
+	}
+	servers := make([]OIDCClientBareMetalServer, 0, len(wrapped.Servers))
+	for _, raw := range wrapped.Servers {
+		server := OIDCClientBareMetalServer{Raw: raw}
+		var asObject struct {
+			MBPkgID int `json:"mbpkgid"`
+		}
+		if err := json.Unmarshal(raw, &asObject); err == nil {
+			server.MBPkgID = asObject.MBPkgID
+		} else {
+			var asInt int
+			if err := json.Unmarshal(raw, &asInt); err == nil {
+				server.MBPkgID = asInt
+			}
+		}
+		servers = append(servers, server)
+	}
+	return servers, nil
 }
 
 type OIDCClientAuthLog struct {

@@ -108,3 +108,12 @@ func (c *Client) GetDDoSRules() ([]DDoSRule, error) {
 	}
 	return rules, nil
 }
+
+// GetDDoSRule returns a DDoS rule by id.
+func (c *Client) GetDDoSRule(id int) (*DDoSRule, error) {
+	var rule DDoSRule
+	if err := c.get(context.Background(), "ddos/rule/"+strconv.Itoa(id), &rule); err != nil {
+		return nil, fmt.Errorf("get ddos rule %d: %w", id, err)
+	}
+	return &rule, nil
+}

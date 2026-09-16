@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -207,6 +208,16 @@ type apiResponse struct {
 	Fields  map[string]interface{} `json:"fields"`
 }
 
+type v2PaginatorEnvelope struct {
+	Paginator *v2LaravelPaginator `json:"paginator"`
+}
+
+type v2LaravelPaginator struct {
+	CurrentPage int             `json:"current_page"`
+	LastPage    int             `json:"last_page"`
+	Data        json.RawMessage `json:"data"`
+}
+
 type NotFoundError struct {
 	Method     string
 	URL        string
@@ -218,6 +229,21 @@ type NotFoundError struct {
 
 func (e *NotFoundError) Error() string {
 	return fmt.Sprintf("not found on %s %s: code %d / %d, response: %s / %s", e.Method, e.URL, e.StatusCode, e.Code, e.Message, e.Body)
+}
+
+// ContractError reports a request refused because the account contract or
+// agreement does not enable the requested capability.
+type ContractError struct {
+	Method     string
+	URL        string
+	StatusCode int
+	Code       int
+	Message    string
+	Body       string
+}
+
+func (e *ContractError) Error() string {
+	return fmt.Sprintf("contract refused on %s %s: code %d / %d, response: %s / %s", e.Method, e.URL, e.StatusCode, e.Code, e.Message, e.Body)
 }
 
 // redactURL removes the API key from a URL before it reaches an error message or a log.
@@ -249,6 +275,13 @@ func redactURL(u fmt.Stringer) string {
 func IsNotFound(err error) bool {
 	var notFound *NotFoundError
 	return errors.As(err, &notFound)
+}
+
+// IsContractError reports whether err is a contract or agreement entitlement
+// refusal returned by the API.
+func IsContractError(err error) bool {
+	var contractErr *ContractError
+	return errors.As(err, &contractErr)
 }
 
 // do internal method on Client struct for making the HTTP calls
@@ -289,6 +322,20 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 		}
 	}
 
+	// The documented vAPI2 error envelope uses 412 for precondition failures on
+	// contract gated BGP and anycast endpoints. The live body text is not fixed,
+	// so the predicate is tied to the documented envelope code.
+	if resp.StatusCode == http.StatusPreconditionFailed || r.Code == http.StatusPreconditionFailed {
+		return &ContractError{
+			Method:     req.Method,
+			URL:        redactURL(req.URL),
+			StatusCode: resp.StatusCode,
+			Code:       r.Code,
+			Message:    r.Message,
+			Body:       string(r.Data),
+		}
+	}
+
 	// Deleting a BGP session that is already gone (a retry, or one cleared out
 	// of band) 422s with this message instead of a real error -- treat it as
 	// success so DeleteBGPSession is idempotent.
@@ -303,22 +350,17 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 	}
 
 	// A DNS zone or record that no longer exists 422s with a field error rather than
-	// returning 404. Verified live 2026-09-10: GET /dns/zone/{id} on a zone deleted
-	// moments earlier returns
+	// returning 404. GET /dns/zone/{id} on a deleted zone returns
 	//   422 {"fields":{"id":["The id must be a valid zone id"]}}
 	//
 	// Without this, a zone deleted out of band produces a hard error on every refresh
-	// and the resource can never be reconciled or removed. That is exactly the B-01
-	// defect, and it would have shipped in brand new code, so it is caught here rather
-	// than left for a customer to find.
+	// and the resource can never be reconciled or removed.
 	//
-	// 2026-09-10: the SAME idiom appears on a THIRD field. A firewall set that no longer
+	// The SAME idiom appears on a THIRD field. A firewall set that no longer
 	// exists answers GET /firewall/sets/{id} with
 	//   422 {"fields":{"firewall_set_id":["The firewall set must be a valid"]}}
-	// Verified live against both a deleted set and an id that never existed. Without this,
-	// a firewall set deleted out of band hard errors on every refresh, which is B-01 again
-	// on a security resource. Found by the W12 acceptance suite when its own CheckDestroy
-	// could not tell "gone" from "broken".
+	// Without this, a firewall set deleted out of band hard errors on every refresh on a
+	// security resource.
 	//
 	// The field name differs per resource, so the check is keyed on the field AND the
 	// message, never on the message alone. A blanket "must be a valid" match would swallow
@@ -327,7 +369,7 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 		// One field can carry several not-found messages, so this is field to messages.
 		// Keyed on the pair, never on the message alone: a blanket "must be a valid"
 		// match would swallow genuine validation errors on create and turn a bad request
-		// into a silent no-op. Every entry below was verified live on 2026-09-10.
+		// into a silent no-op.
 		for field, wants := range map[string][]string{
 			"id": {
 				"must be a valid zone id",   // GET dns/zone/{id}
@@ -366,12 +408,11 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 		}
 	}
 
-	// B-08. A server that no longer exists answers GET cloud/server?mbpkgid=N with
+	// A server that no longer exists answers GET cloud/server?mbpkgid=N with
 	//   422 {"fields":{"mbpkgid":["The mbpkgid must be a valid mbpkgid"]}}
 	// The blanket mbpkgid swallow below then returns nil AND a zero valued Server, so
 	// resourceServerRead hydrates state with empty strings and zeros instead of removing
-	// the resource. That is silent state corruption, and it is worse than the loud error
-	// B-01 produced. Confirmed live 2026-09-10 against a server destroyed minutes before.
+	// the resource. That is silent state corruption.
 	//
 	// Narrow, deliberately: only the "not a valid mbpkgid" shape becomes a not-found.
 	// Any other mbpkgid 422 keeps the historical swallow, because that swallow was added
@@ -404,18 +445,27 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 		return fmt.Errorf("got an ERROR response on %s %s: code %d / %d, response: %s / %s", req.Method, redactURL(req.URL), resp.StatusCode, r.Code, r.Message, fieldStr)
 	}
 
-	if (resp.StatusCode != http.StatusOK && resp.StatusCode != 422) || (r.Code != http.StatusOK && r.Code != 422) {
+	if (!isHTTPSuccess(resp.StatusCode) && resp.StatusCode != 422) || (r.Code != 0 && !isHTTPSuccess(r.Code) && r.Code != 422) {
 		return fmt.Errorf("got an error response on %s %s: code %d / %d, response: %s / %s", req.Method, redactURL(req.URL), resp.StatusCode, r.Code, r.Message, string(r.Data))
+	}
+
+	payload := r.Data
+	if data != nil && len(payload) > 0 {
+		var err error
+		payload, err = c.unwrapV2Data(req, payload)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Unmarshal the data field into the caller's typed struct only on success
 	if data != nil && len(r.Data) > 0 {
-		if err := json.Unmarshal(r.Data, data); err != nil {
+		if err := json.Unmarshal(payload, data); err != nil {
 			// Do NOT put the raw body in the error. A dedicated server response carries
 			// ipmi_cxuser and ipmi_cxpass, and its build debug blob carries the BMC
 			// password in clear text, so an unmarshal failure was printing live IPMI
 			// credentials into terraform output, CI logs and anything scraping them.
-			// Observed 2026-09-10 on GET dedicated/servers/{id}. Same class as the API
+			// Same class as the API
 			// key leak, and worse, because a BMC is out of band access to the machine.
 			return fmt.Errorf("could not unmarshal response data (%d bytes, redacted): %w",
 				len(r.Data), err)
@@ -423,4 +473,112 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 	}
 
 	return nil
+}
+
+func (c *Client) unwrapV2Data(req *http.Request, raw json.RawMessage) (json.RawMessage, error) {
+	paginator, ok, err := decodeV2Paginator(raw)
+	if err != nil || !ok {
+		return raw, err
+	}
+
+	if paginator.CurrentPage <= 0 || paginator.LastPage <= 0 {
+		return nil, fmt.Errorf("invalid paginated response on %s %s", req.Method, redactURL(req.URL))
+	}
+	if paginator.LastPage == 1 {
+		return paginator.Data, nil
+	}
+	if req.Method != http.MethodGet {
+		return nil, fmt.Errorf("pagination is not implemented for %s %s", req.Method, redactURL(req.URL))
+	}
+
+	var allData []json.RawMessage
+	if err := json.Unmarshal(paginator.Data, &allData); err != nil {
+		return nil, fmt.Errorf("unmarshal paginator page %d: %w", paginator.CurrentPage, err)
+	}
+
+	for page := paginator.CurrentPage + 1; page <= paginator.LastPage; page++ {
+		pageData, err := c.getV2PaginatorPageData(req, page)
+		if err != nil {
+			return nil, err
+		}
+		var rows []json.RawMessage
+		if err := json.Unmarshal(pageData, &rows); err != nil {
+			return nil, fmt.Errorf("unmarshal paginator page %d: %w", page, err)
+		}
+		allData = append(allData, rows...)
+	}
+
+	data, err := json.Marshal(allData)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func decodeV2Paginator(raw json.RawMessage) (*v2LaravelPaginator, bool, error) {
+	trimmed := bytes.TrimSpace(raw)
+	if !bytes.HasPrefix(trimmed, []byte("{")) {
+		return nil, false, nil
+	}
+	var direct v2LaravelPaginator
+	if err := json.Unmarshal(raw, &direct); err != nil {
+		return nil, false, err
+	}
+	if direct.CurrentPage > 0 && direct.LastPage > 0 && len(direct.Data) > 0 {
+		return &direct, true, nil
+	}
+
+	var envelope v2PaginatorEnvelope
+	if err := json.Unmarshal(raw, &envelope); err != nil {
+		return nil, false, err
+	}
+	if envelope.Paginator == nil || len(envelope.Paginator.Data) == 0 {
+		return nil, false, nil
+	}
+	return envelope.Paginator, true, nil
+}
+
+func (c *Client) getV2PaginatorPageData(req *http.Request, page int) (json.RawMessage, error) {
+	pageReq := req.Clone(req.Context())
+	pageReq.Body = nil
+	pageReq.GetBody = nil
+	q := pageReq.URL.Query()
+	q.Set("page", strconv.Itoa(page))
+	pageReq.URL.RawQuery = q.Encode()
+
+	resp, err := c.client.Do(pageReq)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	c.debugLog("got a paginated response: %s", string(body))
+
+	var r apiResponse
+	if err := json.Unmarshal(body, &r); err != nil {
+		return nil, fmt.Errorf("could not unmarshal paginator page %d response (%d bytes, redacted): %w", page, len(body), err)
+	}
+	if !isHTTPSuccess(resp.StatusCode) || (r.Code != 0 && !isHTTPSuccess(r.Code)) {
+		return nil, fmt.Errorf("got an error response on paginator page %d for %s %s: code %d / %d, response: %s", page, pageReq.Method, redactURL(pageReq.URL), resp.StatusCode, r.Code, r.Message)
+	}
+
+	paginator, ok, err := decodeV2Paginator(r.Data)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, fmt.Errorf("paginator page %d on %s %s did not include a paginator", page, pageReq.Method, redactURL(pageReq.URL))
+	}
+	if paginator.CurrentPage != page {
+		return nil, fmt.Errorf("paginator page %d on %s %s returned page %d", page, pageReq.Method, redactURL(pageReq.URL), paginator.CurrentPage)
+	}
+	return paginator.Data, nil
+}
+
+func isHTTPSuccess(code int) bool {
+	return code >= 200 && code < 300
 }

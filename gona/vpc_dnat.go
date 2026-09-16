@@ -69,6 +69,20 @@ func (c *V3Client) CreateVPCDNATRule(vpcID int, req *CreateVPCDNATRuleRequest) (
 	return &rule, nil
 }
 
+// ListVPCDNATRulesAll returns all DNAT rules for a VPC NAT gateway.
+func (c *V3Client) ListVPCDNATRulesAll(vpcID int) ([]VPCDNATRule, error) {
+	path := fmt.Sprintf("/vpcs/%d/gateway/rules/dnat", vpcID)
+	listData, err := c.getList(path)
+	if err != nil {
+		return nil, fmt.Errorf("list DNAT rules for VPC %d: %w", vpcID, err)
+	}
+	var rules []VPCDNATRule
+	if err := json.Unmarshal(listData.Data, &rules); err != nil {
+		return nil, fmt.Errorf("list DNAT rules unmarshal inner: %w", err)
+	}
+	return rules, nil
+}
+
 func (c *V3Client) ListVPCDNATRules(vpcID, ipVersion int) ([]VPCDNATRule, error) {
 	path := fmt.Sprintf("/vpcs/%d/gateway/rules/dnat/ipv%d", vpcID, ipVersion)
 	listData, err := c.getList(path)

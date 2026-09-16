@@ -51,6 +51,23 @@ type RouterVRFServices struct {
 	DHCP RouterVRFDHCPConfig `json:"dhcp"`
 }
 
+// ListRouterVRFs returns the VRF configuration for a cloud router.
+func (c *V3Client) ListRouterVRFs(routerID int) (GetRouterVRFResponse, error) {
+	path := fmt.Sprintf("/cloud-routing/routers/%d/config/vrfs", routerID)
+
+	resp, err := c.get(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list VRFs on router %d: %w", routerID, err)
+	}
+
+	var vrfs GetRouterVRFResponse
+	if err := json.Unmarshal(resp.Data, &vrfs); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal VRF list response: %w", err)
+	}
+
+	return vrfs, nil
+}
+
 func (c *V3Client) CreateRouterVRF(routerID int, req CreateRouterVRFRequest) (*CreateRouterVRFResponse, error) {
 	path := fmt.Sprintf("/cloud-routing/routers/%d/config/vrfs", routerID)
 

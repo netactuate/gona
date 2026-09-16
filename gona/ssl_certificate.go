@@ -6,13 +6,13 @@ import (
 )
 
 type SSLCertificate struct {
-	SSLCertificateID int                 `json:"sslCertificateId"`
-	Name             string              `json:"name"`
-	Description      string              `json:"description"`
-	Fingerprint      string              `json:"fingerprint"`
-	Domains          []string            `json:"domains"`
-	IsActive         bool                `json:"isActive"`
-	Status           string              `json:"status"`
+	SSLCertificateID int                  `json:"sslCertificateId"`
+	Name             string               `json:"name"`
+	Description      string               `json:"description"`
+	Fingerprint      string               `json:"fingerprint"`
+	Domains          []string             `json:"domains"`
+	IsActive         bool                 `json:"isActive"`
+	Status           string               `json:"status"`
 	Dates            *SSLCertificateDates `json:"dates,omitempty"`
 }
 
@@ -51,6 +51,20 @@ func (c *V3Client) CreateSSLCertificate(req *CreateSSLCertificateRequest) (*Crea
 		return nil, fmt.Errorf("create SSL certificate unmarshal: %w", err)
 	}
 	return &result, nil
+}
+
+// GetSSLCertificates returns the SSL certificates for the account.
+func (c *V3Client) GetSSLCertificates() ([]SSLCertificate, error) {
+	listData, err := c.getList("/ssl-certificates")
+	if err != nil {
+		return nil, fmt.Errorf("get SSL certificates: %w", err)
+	}
+
+	var certs []SSLCertificate
+	if err := json.Unmarshal(listData.Data, &certs); err != nil {
+		return nil, fmt.Errorf("get SSL certificates unmarshal: %w", err)
+	}
+	return certs, nil
 }
 
 func (c *V3Client) GetSSLCertificate(id int) (*SSLCertificate, error) {

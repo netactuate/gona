@@ -112,6 +112,21 @@ func (c *V3Client) CreateHTTPLBGroup(httpLbID int, req *CreateHTTPLBGroupRequest
 	return &group, nil
 }
 
+// GetHTTPLBGroups returns the load balancer groups for an HTTP load balancer.
+func (c *V3Client) GetHTTPLBGroups(httpLbID int) ([]HTTPLBGroup, error) {
+	path := fmt.Sprintf("/http-loadbalancers/%d/groups", httpLbID)
+	listData, err := c.getList(path)
+	if err != nil {
+		return nil, fmt.Errorf("get HTTP LB groups for LB %d: %w", httpLbID, err)
+	}
+
+	var groups []HTTPLBGroup
+	if err := json.Unmarshal(listData.Data, &groups); err != nil {
+		return nil, fmt.Errorf("get HTTP LB groups unmarshal: %w", err)
+	}
+	return groups, nil
+}
+
 func (c *V3Client) GetHTTPLBGroup(httpLbID, groupID int) (*HTTPLBGroup, error) {
 	path := fmt.Sprintf("/http-loadbalancers/%d/groups/%d", httpLbID, groupID)
 	resp, err := c.get(path)

@@ -3,10 +3,9 @@ package gona
 import (
 	"context"
 	"encoding/json"
-	"net/url"
+	"fmt"
 	"strconv"
-    "log"
-    "fmt"
+
 	"github.com/google/go-querystring/query"
 )
 
@@ -32,14 +31,14 @@ type Server struct {
 }
 
 type JobStatus struct {
-    ID       int    `json:"id"`
-    TSInsert string `json:"ts_insert"`
-    Command  string `json:"command"`
-    Status   int    `json:"status"`
+	ID       int    `json:"id"`
+	TSInsert string `json:"ts_insert"`
+	Command  string `json:"command"`
+	Status   int    `json:"status"`
 }
 
 type DeleteServerResponse struct {
-    ID int `json:"id"`
+	ID int `json:"id"`
 }
 
 // GetServers external method on Client to list your instances
@@ -53,7 +52,7 @@ func (c *Client) GetServers() ([]Server, error) {
 
 // GetServer external method on Client to get an instance
 func (c *Client) GetServer(id int) (server Server, err error) {
-	if err := c.get(context.Background(), "cloud/server?mbpkgid="+strconv.Itoa(id), &server); err != nil {
+	if err := c.get(context.Background(), "cloud/server/"+strconv.Itoa(id), &server); err != nil {
 		return server, err
 	}
 	return server, nil
@@ -61,22 +60,22 @@ func (c *Client) GetServer(id int) (server Server, err error) {
 
 // CreateServerRequest is as set of parameters for a server creation call.
 type CreateServerRequest struct {
-	Plan                     string `url:"plan,omitempty"`
-	Location                 int    `url:"location,omitempty"`
-	Image                    int    `url:"image,omitempty"`
-	FQDN                     string `url:"fqdn,omitempty"`
-	SSHKey                   string `url:"ssh_key,omitempty"`
-	SSHKeyID                 int    `url:"ssh_key_id,omitempty"`
-	Password                 string `url:"password,omitempty"`
-	PackageBilling           string `url:"package_billing,omitempty"`
-	PackageBillingContractId string `url:"package_billing_contract_id,omitempty"`
-	CloudConfig              string `url:"cloud_config,omitempty"`
-	ScriptContent            string `url:"script_content,omitempty"`
-	Params     				 string `url:"params,omitempty"`
-	Tag                      string `url:"tag,omitempty"`
+	Plan                     string    `url:"plan,omitempty"`
+	Location                 int       `url:"location,omitempty"`
+	Image                    int       `url:"image,omitempty"`
+	FQDN                     string    `url:"fqdn,omitempty"`
+	SSHKey                   string    `url:"ssh_key,omitempty"`
+	SSHKeyID                 int       `url:"ssh_key_id,omitempty"`
+	Password                 string    `url:"password,omitempty"`
+	PackageBilling           string    `url:"package_billing,omitempty"`
+	PackageBillingContractId string    `url:"package_billing_contract_id,omitempty"`
+	CloudConfig              string    `url:"cloud_config,omitempty"`
+	ScriptContent            string    `url:"script_content,omitempty"`
+	Params                   string    `url:"params,omitempty"`
+	Tag                      string    `url:"tag,omitempty"`
 	TagList                  *[]string `url:"-"`
-	CloudPoolID              *int     `url:"cloud_pool_id,omitempty"`
-	VpcID                    *int     `url:"vpc_id,omitempty"`
+	CloudPoolID              *int      `url:"cloud_pool_id,omitempty"`
+	VpcID                    *int      `url:"vpc_id,omitempty"`
 }
 
 // ServerBuild is a server creation response message.
@@ -92,15 +91,15 @@ func (c *Client) CreateServer(r *CreateServerRequest) (b ServerBuild, err error)
 	if err != nil {
 		return b, err
 	}
-    if r.TagList != nil {
-        if len(*r.TagList) == 0 {
-            values.Add("tag_list[]", "")
-        } else {
-            for _, tag := range *r.TagList {
-                values.Add("tag_list[]", tag)
-            }
-        }
-    }
+	if r.TagList != nil {
+		if len(*r.TagList) == 0 {
+			values.Add("tag_list[]", "")
+		} else {
+			for _, tag := range *r.TagList {
+				values.Add("tag_list[]", tag)
+			}
+		}
+	}
 	if values.Has("script_content") {
 		values.Add("script_type", "user-data")
 	}
@@ -114,22 +113,22 @@ func (c *Client) CreateServer(r *CreateServerRequest) (b ServerBuild, err error)
 
 // BuildServerRequest is a set of parameters for a server re-building call.
 type BuildServerRequest struct {
-	Plan                     string `url:"plan,omitempty"`
-	Location                 int    `url:"location,omitempty"`
-	Image                    int    `url:"image,omitempty"`
-	FQDN                     string `url:"fqdn,omitempty"`
-	SSHKey                   string `url:"ssh_key,omitempty"`
-	SSHKeyID                 int    `url:"ssh_key_id,omitempty"`
-	Password                 string `url:"password,omitempty"`
-	PackageBilling           string `url:"package_billing,omitempty"`
-	PackageBillingContractId string `url:"package_billing_contract_id,omitempty"`
-	CloudConfig              string `url:"cloud_config,omitempty"`
-	ScriptContent            string `url:"script_content,omitempty"`
-	Params     				 string `url:"params,omitempty"`
-	Tag                      string `url:"-"`
+	Plan                     string    `url:"plan,omitempty"`
+	Location                 int       `url:"location,omitempty"`
+	Image                    int       `url:"image,omitempty"`
+	FQDN                     string    `url:"fqdn,omitempty"`
+	SSHKey                   string    `url:"ssh_key,omitempty"`
+	SSHKeyID                 int       `url:"ssh_key_id,omitempty"`
+	Password                 string    `url:"password,omitempty"`
+	PackageBilling           string    `url:"package_billing,omitempty"`
+	PackageBillingContractId string    `url:"package_billing_contract_id,omitempty"`
+	CloudConfig              string    `url:"cloud_config,omitempty"`
+	ScriptContent            string    `url:"script_content,omitempty"`
+	Params                   string    `url:"params,omitempty"`
+	Tag                      string    `url:"-"`
 	TagList                  *[]string `url:"-"`
-	CloudPoolID              *int     `url:"cloud_pool_id,omitempty"`
-	VpcID                    *int     `url:"vpc_id,omitempty"`
+	CloudPoolID              *int      `url:"cloud_pool_id,omitempty"`
+	VpcID                    *int      `url:"vpc_id,omitempty"`
 }
 
 // BuildServer external method on Client to re-build an instance
@@ -138,22 +137,22 @@ func (c *Client) BuildServer(id int, r *BuildServerRequest) (b ServerBuild, err 
 	if err != nil {
 		return b, err
 	}
-    if r.TagList != nil {
-        if len(*r.TagList) == 0 {
-            values.Add("tag_list[]", "")
-        } else {
-            for _, tag := range *r.TagList {
-                values.Add("tag_list[]", tag)
-            }
-        }
-    }
+	if r.TagList != nil {
+		if len(*r.TagList) == 0 {
+			values.Add("tag_list[]", "")
+		} else {
+			for _, tag := range *r.TagList {
+				values.Add("tag_list[]", tag)
+			}
+		}
+	}
 	if values.Has("script_content") {
 		values.Add("script_type", "user-data")
 	}
 
 	// if r.Params != "" {
-    //     values.Add("params", r.Params)
-    // }
+	//     values.Add("params", r.Params)
+	// }
 
 	if err := c.post(context.Background(), "cloud/server/build/"+strconv.Itoa(id), []byte(values.Encode()), &b); err != nil {
 		return b, err
@@ -164,52 +163,36 @@ func (c *Client) BuildServer(id int, r *BuildServerRequest) (b ServerBuild, err 
 
 // DeleteServer external method on Client to destroy an instance.
 func (c *Client) DeleteServer(id int, cancelBilling bool) (int, error) {
-    values := url.Values{}
-    if cancelBilling {
-        values.Add("cancel_billing", "1")
-    }
+	req := &DeleteServerRequest{}
+	if cancelBilling {
+		req.CancelBilling = BoolPtr(true)
+	}
 
-    var resp DeleteServerResponse
-    if err := c.post(context.Background(), 
-        "cloud/server/delete?mbpkgid="+strconv.Itoa(id),
-        []byte(values.Encode()),
-        &resp,
-    ); err != nil {
-        return 0, err
-    }
-    log.Printf("[DEBUG] DeleteServer response: %+v", resp)
+	resp, err := c.DeleteServerWithOptions(id, req)
+	if err != nil {
+		return 0, err
+	}
 
-    if resp.ID != 0 {
-        return resp.ID, nil
-    }
+	if resp.ID != 0 {
+		return resp.ID, nil
+	}
 
-    return 0, fmt.Errorf("Unexpected response: %+v", resp)
+	return 0, fmt.Errorf("unexpected response: %+v", resp)
 }
-
 
 // UnlinkServer external method on Client to unlink a billing package from a location
 func (c *Client) UnlinkServer(id int) error {
-	return c.post(context.Background(), "cloud/server/unlink/"+strconv.Itoa(id), nil, nil)
+	return c.post(context.Background(), "cloud/server/"+strconv.Itoa(id)+"/unlink", nil, nil)
 }
 
 // StartServer external method on Client to boot up an instance
 func (c *Client) StartServer(id int) error {
-
-	if err := c.post(context.Background(), "cloud/server/start/"+strconv.Itoa(id), nil, nil); err != nil {
-		return err
-	}
-
-	return nil
+	return c.StartServerWithOptions(id, nil)
 }
 
 // StopServer external method on Client to shut down an instance
 func (c *Client) StopServer(id int) error {
-
-	if err := c.post(context.Background(), "cloud/server/shutdown/"+strconv.Itoa(id), nil, nil); err != nil {
-		return err
-	}
-
-	return nil
+	return c.ShutdownServerWithOptions(id, nil)
 }
 
 // Scale
@@ -235,14 +218,12 @@ func (c *Client) ScaleServer(id int, req *ScaleServerRequest) (int, error) {
 }
 
 func (c *Client) GetJobStatus(command string, jobID int) (JobStatus, error) {
-    var jobStatus JobStatus
-    endpoint := "cloud/jobs/" + command + "/" + strconv.Itoa(jobID)
-    log.Printf("[DEBUG] GetJobStatus: Making request to endpoint: %s", endpoint)
+	var jobStatus JobStatus
+	endpoint := "cloud/jobs/" + command + "/" + strconv.Itoa(jobID)
 
-    if err := c.get(context.Background(), endpoint, &jobStatus); err != nil {
-        log.Printf("[DEBUG] GetJobStatus: API call failed for endpoint %s: %v", endpoint, err)
-        return JobStatus{}, err
-    }
+	if err := c.get(context.Background(), endpoint, &jobStatus); err != nil {
+		return JobStatus{}, err
+	}
 
-    return jobStatus, nil
+	return jobStatus, nil
 }

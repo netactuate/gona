@@ -113,6 +113,17 @@ type UpdateNKEClusterRequest struct {
 	Tags          []NKEClusterTagInput `json:"tags,omitempty"`
 }
 
+type UpdateNKEWorkerNodeRequest struct {
+	Label string               `json:"label,omitempty"`
+	Tags  []NKEClusterTagInput `json:"tags,omitempty"`
+}
+
+type NKEAccessURLs struct {
+	API                 string `json:"api,omitempty"`
+	Prometheus          string `json:"prometheus,omitempty"`
+	KubernetesDashboard string `json:"kubernetesDashboard,omitempty"`
+}
+
 type NKEWorkerNode struct {
 	WorkerNodeID int    `json:"workerNodeId"`
 	ClusterID    int    `json:"clusterId"`
@@ -221,6 +232,20 @@ func (c *V3Client) GenerateNKEKubeconfig(clusterID int, expirationSeconds int) (
 	return kubeconfig, nil
 }
 
+// CreateNKEAccessURLs creates secure access URLs for an NKE cluster.
+func (c *V3Client) CreateNKEAccessURLs(clusterID int) (*NKEAccessURLs, error) {
+	path := fmt.Sprintf("/nke/clusters/%d/create-access-urls", clusterID)
+	resp, err := c.post(path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create access URLs for NKE cluster %d: %w", clusterID, err)
+	}
+	var urls NKEAccessURLs
+	if err := json.Unmarshal(resp.Data, &urls); err != nil {
+		return nil, fmt.Errorf("create access URLs for NKE cluster %d unmarshal: %w", clusterID, err)
+	}
+	return &urls, nil
+}
+
 func (c *V3Client) ListNKEClusterLogs(clusterID int) ([]NKELogEntry, error) {
 	path := fmt.Sprintf("/nke/clusters/%d/logs", clusterID)
 	listData, err := c.getList(path)
@@ -260,6 +285,20 @@ func (c *V3Client) GetNKEWorkerNode(clusterID, workerNodeID int) (*NKEWorkerNode
 	return &node, nil
 }
 
+// UpdateNKEWorkerNode updates metadata on a worker node.
+func (c *V3Client) UpdateNKEWorkerNode(clusterID, workerNodeID int, req *UpdateNKEWorkerNodeRequest) (*NKEWorkerNode, error) {
+	path := fmt.Sprintf("/nke/clusters/%d/worker-nodes/%d", clusterID, workerNodeID)
+	resp, err := c.patch(path, req)
+	if err != nil {
+		return nil, fmt.Errorf("update NKE cluster %d worker node %d: %w", clusterID, workerNodeID, err)
+	}
+	var node NKEWorkerNode
+	if err := json.Unmarshal(resp.Data, &node); err != nil {
+		return nil, fmt.Errorf("update NKE cluster %d worker node %d unmarshal: %w", clusterID, workerNodeID, err)
+	}
+	return &node, nil
+}
+
 func (c *V3Client) DeleteNKEWorkerNode(clusterID, workerNodeID int) error {
 	path := fmt.Sprintf("/nke/clusters/%d/worker-nodes/%d", clusterID, workerNodeID)
 	_, err := c.del(path)
@@ -267,6 +306,25 @@ func (c *V3Client) DeleteNKEWorkerNode(clusterID, workerNodeID int) error {
 		return fmt.Errorf("delete NKE worker node %d for cluster %d: %w", workerNodeID, clusterID, err)
 	}
 	return nil
+}
+
+// WaitForNKEWorkerNodes waits until the cluster lists at least minimum worker nodes.
+//
+// A cluster reports Healthy before its worker nodes appear in the worker node listing, so a
+// caller that reads the nodes as soon as creation returns can see an empty list for a cluster
+// that is about to have several. Waiting on the nodes themselves closes that window.
+func (c *V3Client) WaitForNKEWorkerNodes(clusterID, minimum int) error {
+	if minimum <= 0 {
+		return nil
+	}
+	return c.waitForCondition(func() (bool, error) {
+		nodes, err := c.ListNKEWorkerNodes(clusterID)
+		if err != nil {
+			return false, err
+		}
+		c.debugLog("NKE cluster %d worker nodes: %d of %d", clusterID, len(nodes), minimum)
+		return len(nodes) >= minimum, nil
+	}, NKEWaitConfig)
 }
 
 func (c *V3Client) WaitForNKEClusterHealthy(clusterID int) error {

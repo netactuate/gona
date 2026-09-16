@@ -121,6 +121,100 @@ type CreateFirewallRuleRequest struct {
 	MatchCriteria *FirewallMatchCriteria `json:"match_criteria"`
 }
 
+type FirewallExternalIPSet struct {
+	ID          int             `json:"id"`
+	Name        string          `json:"name,omitempty"`
+	Description string          `json:"description,omitempty"`
+	Raw         json.RawMessage `json:"-"`
+}
+
+func (s *FirewallExternalIPSet) UnmarshalJSON(data []byte) error {
+	type alias FirewallExternalIPSet
+	if err := json.Unmarshal(data, (*alias)(s)); err != nil {
+		return err
+	}
+	s.Raw = append(s.Raw[:0], data...)
+	return nil
+}
+
+type FirewallManageEnabled struct {
+	Enabled bool            `json:"enabled"`
+	Raw     json.RawMessage `json:"-"`
+}
+
+func (m *FirewallManageEnabled) UnmarshalJSON(data []byte) error {
+	type alias FirewallManageEnabled
+	if err := json.Unmarshal(data, (*alias)(m)); err != nil {
+		return err
+	}
+	m.Raw = append(m.Raw[:0], data...)
+	return nil
+}
+
+type FirewallRelatedSetOptions struct {
+	DisableInterfaceIDFilter *bool
+}
+
+type FirewallAvailableVMOptions struct {
+	ExtrefAccountID          *int
+	VPCID                    *int
+	IncludeBandwidth         *bool
+	IncludeUL                *bool
+	CheckVPC                 *bool
+	DisableInterfaceIDFilter *bool
+}
+
+type ReorderFirewallRulesRequest struct {
+	MoveID   int  `json:"move_id"`
+	AfterID  *int `json:"after_id,omitempty"`
+	BeforeID *int `json:"before_id,omitempty"`
+}
+
+func addOptionalBoolFlag(values url.Values, name string, value *bool) {
+	if value == nil {
+		return
+	}
+	if *value {
+		values.Set(name, "1")
+		return
+	}
+	values.Set(name, "0")
+}
+
+func addOptionalInt(values url.Values, name string, value *int) {
+	if value == nil {
+		return
+	}
+	values.Set(name, strconv.Itoa(*value))
+}
+
+// GetFirewallExternalIPSets returns external IP sets for the account.
+func (c *Client) GetFirewallExternalIPSets() ([]FirewallExternalIPSet, error) {
+	var sets []FirewallExternalIPSet
+	if err := c.get(context.Background(), "firewall/external-ipsets", &sets); err != nil {
+		return nil, fmt.Errorf("get firewall external IP sets: %w", err)
+	}
+	return sets, nil
+}
+
+// GetFirewallExternalIPSet returns one external IP set by ID.
+func (c *Client) GetFirewallExternalIPSet(id int) (FirewallExternalIPSet, error) {
+	var set FirewallExternalIPSet
+	if err := c.get(context.Background(), "firewall/external-ipsets/"+strconv.Itoa(id), &set); err != nil {
+		return FirewallExternalIPSet{}, fmt.Errorf("get firewall external IP set %d: %w", id, err)
+	}
+	return set, nil
+}
+
+// GetFirewallManageEnabled reports whether firewall management is available.
+func (c *Client) GetFirewallManageEnabled() (FirewallManageEnabled, error) {
+	var enabled FirewallManageEnabled
+	if err := c.get(context.Background(), "firewall/manage/enabled", &enabled); err != nil {
+		return FirewallManageEnabled{}, err
+	}
+	return enabled, nil
+}
+
 func (c *Client) GetFirewallSets() ([]FirewallSet, error) {
 	var sets []FirewallSet
 	if err := c.get(context.Background(), "firewall/sets", &sets); err != nil {
@@ -214,6 +308,19 @@ func (c *Client) GetFirewallRules(setID int) ([]FirewallRule, error) {
 		return nil, err
 	}
 	return rules, nil
+}
+
+// ReorderFirewallRules moves a rule within a draft firewall set.
+func (c *Client) ReorderFirewallRules(setID int, req *ReorderFirewallRulesRequest) error {
+	body, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("encoding firewall rule reorder request: %w", err)
+	}
+	path := fmt.Sprintf("firewall/sets/%d/rules/re-order", setID)
+	if err := c.postJSON(context.Background(), path, body, nil); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *Client) GetFirewallRule(setID, ruleID int) (FirewallRule, error) {
@@ -314,6 +421,49 @@ func (c *Client) GetFirewallSetVMs(setID int) ([]FirewallSetVM, error) {
 	return vms, nil
 }
 
+// GetFirewallSetAvailableVMs returns VMs that can be attached to a firewall set.
+func (c *Client) GetFirewallSetAvailableVMs(setID int, opts *FirewallAvailableVMOptions) ([]FirewallSetVM, error) {
+	values := url.Values{}
+	if opts != nil {
+		addOptionalInt(values, "extref_acct_id", opts.ExtrefAccountID)
+		addOptionalInt(values, "vpc_id", opts.VPCID)
+		addOptionalBoolFlag(values, "bw", opts.IncludeBandwidth)
+		addOptionalBoolFlag(values, "ul", opts.IncludeUL)
+		addOptionalBoolFlag(values, "check_vpc", opts.CheckVPC)
+		addOptionalBoolFlag(values, "disable_interface_id_filter", opts.DisableInterfaceIDFilter)
+	}
+
+	path := fmt.Sprintf("firewall/sets/%d/available-vm-list", setID)
+	if encoded := values.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
+
+	var vms []FirewallSetVM
+	if err := c.get(context.Background(), path, &vms); err != nil {
+		return nil, err
+	}
+	return vms, nil
+}
+
+// GetFirewallSetRelatedVMs returns firewall set relations for a VM.
+func (c *Client) GetFirewallSetRelatedVMs(mbpkgid int, opts *FirewallRelatedSetOptions) ([]FirewallSetVM, error) {
+	values := url.Values{}
+	if opts != nil {
+		addOptionalBoolFlag(values, "disable_interface_id_filter", opts.DisableInterfaceIDFilter)
+	}
+
+	path := fmt.Sprintf("firewall/sets/vm/%d/related", mbpkgid)
+	if encoded := values.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
+
+	var vms []FirewallSetVM
+	if err := c.get(context.Background(), path, &vms); err != nil {
+		return nil, err
+	}
+	return vms, nil
+}
+
 func (c *Client) AttachFirewallSetVM(setID, mbpkgid, interfaceID, setPriority int) ([]FirewallSetVM, error) {
 	req := attachVMRequest{
 		VMList: []attachVMEntry{
@@ -339,5 +489,17 @@ func (c *Client) AttachFirewallSetVM(setID, mbpkgid, interfaceID, setPriority in
 
 func (c *Client) DetachFirewallSetVM(setID, mbpkgid int) error {
 	path := fmt.Sprintf("firewall/sets/%d/vm/detach/%d", setID, mbpkgid)
+	return c.post(context.Background(), path, []byte{}, nil)
+}
+
+// DetachFirewallSetVMRelation detaches a VM from a firewall set by relation ID.
+func (c *Client) DetachFirewallSetVMRelation(relationID int) error {
+	path := fmt.Sprintf("firewall/sets/vm/detach/%d", relationID)
+	return c.post(context.Background(), path, []byte{}, nil)
+}
+
+// DetachAllFirewallSetVMs detaches every VM from a firewall set.
+func (c *Client) DetachAllFirewallSetVMs(setID int) error {
+	path := fmt.Sprintf("firewall/sets/%d/vm/detach-all", setID)
 	return c.post(context.Background(), path, []byte{}, nil)
 }

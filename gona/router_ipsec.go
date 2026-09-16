@@ -49,13 +49,13 @@ type RouterVRFIPSecOverlayNetwork struct {
 }
 
 type CreateRouterVRFIPSecPeerRequest struct {
-	Name                 string                              `json:"name"`
-	Description          *string                             `json:"description,omitempty"`
-	RemoteID             string                              `json:"remoteId"`
-	PSKSecret            string                              `json:"pskSecret"`
-	DoInitiateConnection bool                                `json:"doInitiateConnection"`
-	PeerAddress          string                              `json:"peerAddress,omitempty"`
-	OverlayNetwork       CreateRouterVRFIPSecOverlayNetwork  `json:"overlayNetwork"`
+	Name                 string                             `json:"name"`
+	Description          *string                            `json:"description,omitempty"`
+	RemoteID             string                             `json:"remoteId"`
+	PSKSecret            string                             `json:"pskSecret"`
+	DoInitiateConnection bool                               `json:"doInitiateConnection"`
+	PeerAddress          string                             `json:"peerAddress,omitempty"`
+	OverlayNetwork       CreateRouterVRFIPSecOverlayNetwork `json:"overlayNetwork"`
 }
 
 type CreateRouterVRFIPSecOverlayNetwork struct {

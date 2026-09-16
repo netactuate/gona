@@ -5,8 +5,7 @@ import (
 	"testing"
 )
 
-// The exact body observed live on 2026-09-10 from
-// GET /nke/clusters/397/addons/storage. If this does not unmarshal into the fields the
+// The exact body shape from GET /nke/clusters/{id}/addons/storage. If this does not unmarshal into the fields the
 // provider reads, no amount of provider-side fiddling will help.
 func TestNKEAddonStorageConfigUnmarshals(t *testing.T) {
 	const body = `{

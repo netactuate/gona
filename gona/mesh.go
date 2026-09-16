@@ -41,6 +41,21 @@ type AddMeshRouterRequest struct {
 	RouterID int `json:"routerId"`
 }
 
+// ListMagicMeshes returns all magic meshes visible to the account.
+func (c *V3Client) ListMagicMeshes() ([]MagicMesh, error) {
+	listData, err := c.getList("/cloud-routing/meshes?limit=1000")
+	if err != nil {
+		return nil, fmt.Errorf("list magic meshes: %w", err)
+	}
+
+	var meshes []MagicMesh
+	if err := json.Unmarshal(listData.Data, &meshes); err != nil {
+		return nil, fmt.Errorf("list magic meshes unmarshal: %w", err)
+	}
+
+	return meshes, nil
+}
+
 func (c *V3Client) CreateMagicMesh(req *CreateMagicMeshRequest) (*CreateMagicMeshResponse, error) {
 	resp, err := c.post("/cloud-routing/meshes", req)
 	if err != nil {

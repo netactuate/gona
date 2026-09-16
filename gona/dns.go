@@ -9,7 +9,7 @@ import (
 )
 
 // FlexibleTTL is a TTL that the API returns as a string from GET /dns/zone/{id} and as a
-// number from GET /dns/zones. Verified live 2026-09-10 against both endpoints. Modelled the
+// number from GET /dns/zones. Modelled the
 // way FlexibleIPv4 in router.go already handles the same disagreement, rather than inventing
 // a second idiom for it.
 type FlexibleTTL string
@@ -55,7 +55,7 @@ type DNSZoneSOA struct {
 }
 
 // DNSZone models a zone as the API actually returns it, which is not what the list and the
-// single GET have in common. Verified live 2026-09-10 against GET /api/dns/zone/{id}:
+// single GET have in common:
 //
 //	soa  is an OBJECT, not a string
 //	ns   is an ARRAY of NS records, not a string

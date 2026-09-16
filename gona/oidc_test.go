@@ -14,7 +14,7 @@ func TestOIDCClientListMeasuredShape(t *testing.T) {
 				"clientId": 123,
 				"createdOn": "2026-09-11T00:00:00Z",
 				"lastUsedOn": null,
-				"label": "nah-test",
+				"label": "test-oidc",
 				"description": "test",
 				"jwksHttpsUrl": "https://keys.example.com/.well-known/jwks.json",
 				"accountDefault": false,

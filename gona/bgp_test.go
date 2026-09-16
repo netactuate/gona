@@ -6,11 +6,21 @@ import (
 	"testing"
 )
 
+type testRoundTripper struct {
+	handler http.HandlerFunc
+}
+
+func (rt testRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	rec := httptest.NewRecorder()
+	rt.handler(rec, req)
+	return rec.Result(), nil
+}
+
 func newTestClient(t *testing.T, handler http.HandlerFunc) *Client {
 	t.Helper()
-	srv := httptest.NewServer(handler)
-	t.Cleanup(srv.Close)
-	return NewClientCustom("test-key", srv.URL+"/")
+	c := NewClientCustom("test-key", "https://example.invalid/")
+	c.client.Transport = testRoundTripper{handler: handler}
+	return c
 }
 
 // DeleteServer, and now DeleteBGPSession, must be safe to retry: a session

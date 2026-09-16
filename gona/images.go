@@ -12,21 +12,21 @@ import (
 
 // Image
 type Image struct {
-	ID             int          `json:"id"`
-	Name           string       `json:"os"`
-	Description    *string      `json:"description"`
-	Type           string       `json:"type"`
-	Subtype        string       `json:"subtype"`
-	Bits           string       `json:"bits"`
-	Tech           string       `json:"tech"`
-	Size           string       `json:"size"`
-	Category       string       `json:"category"`
-	Enabled        *int         `json:"os_enabled"`
-	ScriptBash     int          `json:"script_bash"`
+	ID              int         `json:"id"`
+	Name            string      `json:"os"`
+	Description     *string     `json:"description"`
+	Type            string      `json:"type"`
+	Subtype         string      `json:"subtype"`
+	Bits            string      `json:"bits"`
+	Tech            string      `json:"tech"`
+	Size            string      `json:"size"`
+	Category        string      `json:"category"`
+	Enabled         *int        `json:"os_enabled"`
+	ScriptBash      int         `json:"script_bash"`
 	ScriptCloudinit int         `json:"script_cloudinit"`
-	Created        string       `json:"created"`
-	Updated        string       `json:"updated"`
-	ActiveBuild    *ImageBuild  `json:"active_build"`
+	Created         string      `json:"created"`
+	Updated         string      `json:"updated"`
+	ActiveBuild     *ImageBuild `json:"active_build"`
 }
 
 // ImageBuild (job for tracking)

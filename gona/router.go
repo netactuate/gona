@@ -91,6 +91,21 @@ func (f *FlexibleIPv4) UnmarshalJSON(data []byte) error {
 	return fmt.Errorf("IPv4Address must be either string or int")
 }
 
+// ListRouters returns all cloud routers visible to the account.
+func (c *V3Client) ListRouters() ([]Router, error) {
+	listData, err := c.getList("/cloud-routing/routers?limit=1000")
+	if err != nil {
+		return nil, fmt.Errorf("list routers: %w", err)
+	}
+
+	var routers []Router
+	if err := json.Unmarshal(listData.Data, &routers); err != nil {
+		return nil, fmt.Errorf("list routers unmarshal: %w", err)
+	}
+
+	return routers, nil
+}
+
 func (c *V3Client) GetRouter(routerID int) (*Router, error) {
 	path := fmt.Sprintf("/cloud-routing/routers/%d", routerID)
 
@@ -121,6 +136,25 @@ func (c *V3Client) GetRouterConfig(routerID int) (*RouterConfig, error) {
 	}
 
 	return &config, nil
+}
+
+// ListRouterConfigInterfaces returns the router-wide interface configuration.
+func (c *V3Client) ListRouterConfigInterfaces(routerID int) (json.RawMessage, error) {
+	path := fmt.Sprintf("/cloud-routing/routers/%d/config/interfaces", routerID)
+	resp, err := c.get(path)
+	if err != nil {
+		return nil, fmt.Errorf("list router %d config interfaces: %w", routerID, err)
+	}
+	return resp.Data, nil
+}
+
+// InvalidateRouterConfigCache marks the API's cached router configuration stale.
+func (c *V3Client) InvalidateRouterConfigCache(routerID int) error {
+	path := fmt.Sprintf("/cloud-routing/routers/%d/config/invalidate-cache", routerID)
+	if _, err := c.post(path, nil); err != nil {
+		return fmt.Errorf("invalidate router %d config cache: %w", routerID, err)
+	}
+	return nil
 }
 
 func (c *V3Client) CreateRouter(req *CreateRouterRequest) (*CreateRouterResponse, error) {
@@ -203,9 +237,8 @@ func (c *V3Client) WaitForRouterReadyTimeout(routerID int, timeout time.Duration
 	// readyOn never gets set, so a stalled build and a slow one are indistinguishable to
 	// any client that only watches the clock.
 	//
-	// That cost real time on 2026-09-10, when three routers stalled at "Cloud Router
-	// configured" and a test harness sat on one for over three hours before anyone looked.
-	// Waiting longer never produces information.
+	// When several routers stall at "Cloud Router configured", waiting longer does
+	// not produce more information.
 	//
 	// So track how many steps have completed. If none completes within RouterStallAfter,
 	// give up and say WHICH step is stuck, which is the one fact worth reporting.

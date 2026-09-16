@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// AccessControlSubnet models the inferred W35 user access control subnet shape.
+// AccessControlSubnet models the user access control subnet shape.
 // The live account has zero rows, so this has not been measured from a response.
 type AccessControlSubnet struct {
 	ID     json.Number `json:"id"`

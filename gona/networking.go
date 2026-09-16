@@ -45,6 +45,41 @@ type FloatingIPLocation struct {
 	Longitude string `json:"longitude"`
 }
 
+// CloudNetworkingLocation maps a cloud location to a datacenter.
+type CloudNetworkingLocation struct {
+	LocationID   int `json:"locationId"`
+	DatacenterID int `json:"datacenterId"`
+}
+
+// CreateCloudFloatingIPv4Request creates a floating IPv4 address.
+type CreateCloudFloatingIPv4Request struct {
+	PTRDomain *string `json:"ptrDomain,omitempty"`
+	VLANID    *int    `json:"vlanId,omitempty"`
+}
+
+// CloudFloatingIPv4VM is a virtual machine allowed to access a floating IPv4 address.
+type CloudFloatingIPv4VM struct {
+	MBPkgID int    `json:"mbpkgid"`
+	FQDN    string `json:"fqdn,omitempty"`
+	IP      string `json:"ip,omitempty"`
+}
+
+// CloudFloatingIPv4VMRef identifies a virtual machine for floating IPv4 grants.
+type CloudFloatingIPv4VMRef struct {
+	MBPkgID int `json:"mbpkgid"`
+}
+
+// GrantCloudFloatingIPv4VMsRequest grants VMs access to a floating IPv4 address.
+type GrantCloudFloatingIPv4VMsRequest struct {
+	RevokeExisting *bool                    `json:"revokeExisting,omitempty"`
+	VMs            []CloudFloatingIPv4VMRef `json:"vms,omitempty"`
+}
+
+// RevokeCloudFloatingIPv4VMsRequest revokes VM access to a floating IPv4 address.
+type RevokeCloudFloatingIPv4VMsRequest struct {
+	VMs []CloudFloatingIPv4VMRef `json:"vms,omitempty"`
+}
+
 type ServerNIC struct {
 	NICID          int `json:"-"`
 	MBPkgID        int `json:"-"`
@@ -95,6 +130,24 @@ func (c *Client) GetVLANs() ([]VLAN, error) {
 	return vlans, nil
 }
 
+// GetCustomerVLAN returns a customer VLAN by id.
+func (c *Client) GetCustomerVLAN(customerVLANID int) (VLAN, error) {
+	var vlan VLAN
+	if err := c.get(context.Background(), fmt.Sprintf("cloud/networking/vlans/%d", customerVLANID), &vlan); err != nil {
+		return VLAN{}, err
+	}
+	return vlan, nil
+}
+
+// ListCustomerVLANsAtLocation returns customer VLANs at a location.
+func (c *Client) ListCustomerVLANsAtLocation(locationID int) ([]VLAN, error) {
+	var vlans []VLAN
+	if err := c.get(context.Background(), fmt.Sprintf("cloud/networking/locations/%d/vlans", locationID), &vlans); err != nil {
+		return nil, err
+	}
+	return vlans, nil
+}
+
 func (c *V3Client) ListCloudFloatingIPv4() ([]CloudFloatingIPv4, error) {
 	listData, err := c.getList("/cloud/networking/floating-ips/ipv4")
 	if err != nil {
@@ -106,6 +159,72 @@ func (c *V3Client) ListCloudFloatingIPv4() ([]CloudFloatingIPv4, error) {
 		return nil, fmt.Errorf("list cloud floating IPv4 addresses unmarshal inner: %w", err)
 	}
 	return floatingIPs, nil
+}
+
+// CreateCloudFloatingIPv4 adds a floating IPv4 address to the account.
+func (c *V3Client) CreateCloudFloatingIPv4(req *CreateCloudFloatingIPv4Request) (CloudFloatingIPv4, error) {
+	resp, err := c.post("/cloud/networking/floating-ips/ipv4", req)
+	if err != nil {
+		return CloudFloatingIPv4{}, fmt.Errorf("create cloud floating IPv4 address: %w", err)
+	}
+
+	var floatingIP CloudFloatingIPv4
+	if err := json.Unmarshal(resp.Data, &floatingIP); err != nil {
+		return CloudFloatingIPv4{}, fmt.Errorf("create cloud floating IPv4 address unmarshal: %w", err)
+	}
+	return floatingIP, nil
+}
+
+// DeleteCloudFloatingIPv4 deletes a floating IPv4 address.
+func (c *V3Client) DeleteCloudFloatingIPv4(floatingIPv4ID int) error {
+	if _, err := c.del(fmt.Sprintf("/cloud/networking/floating-ips/ipv4/%d", floatingIPv4ID)); err != nil {
+		return fmt.Errorf("delete cloud floating IPv4 address: %w", err)
+	}
+	return nil
+}
+
+// ListCloudFloatingIPv4VMs returns VMs allowed to access a floating IPv4 address.
+func (c *V3Client) ListCloudFloatingIPv4VMs(floatingIPv4ID int) ([]CloudFloatingIPv4VM, error) {
+	listData, err := c.getList(fmt.Sprintf("/cloud/networking/floating-ips/ipv4/%d/vms", floatingIPv4ID))
+	if err != nil {
+		return nil, fmt.Errorf("list cloud floating IPv4 VMs: %w", err)
+	}
+
+	var vms []CloudFloatingIPv4VM
+	if err := json.Unmarshal(listData.Data, &vms); err != nil {
+		return nil, fmt.Errorf("list cloud floating IPv4 VMs unmarshal inner: %w", err)
+	}
+	return vms, nil
+}
+
+// GrantCloudFloatingIPv4VMs grants VMs access to a floating IPv4 address.
+func (c *V3Client) GrantCloudFloatingIPv4VMs(floatingIPv4ID int, req *GrantCloudFloatingIPv4VMsRequest) error {
+	if _, err := c.post(fmt.Sprintf("/cloud/networking/floating-ips/ipv4/%d/vms/mass-grant", floatingIPv4ID), req); err != nil {
+		return fmt.Errorf("grant cloud floating IPv4 VMs: %w", err)
+	}
+	return nil
+}
+
+// RevokeCloudFloatingIPv4VMs revokes VM access to a floating IPv4 address.
+func (c *V3Client) RevokeCloudFloatingIPv4VMs(floatingIPv4ID int, req *RevokeCloudFloatingIPv4VMsRequest) error {
+	if _, err := c.post(fmt.Sprintf("/cloud/networking/floating-ips/ipv4/%d/vms/mass-revoke", floatingIPv4ID), req); err != nil {
+		return fmt.Errorf("revoke cloud floating IPv4 VMs: %w", err)
+	}
+	return nil
+}
+
+// ListCloudNetworkingLocations returns cloud location to datacenter mappings.
+func (c *V3Client) ListCloudNetworkingLocations() ([]CloudNetworkingLocation, error) {
+	resp, err := c.get("/cloud/networking/locations")
+	if err != nil {
+		return nil, fmt.Errorf("list cloud networking locations: %w", err)
+	}
+
+	var locations []CloudNetworkingLocation
+	if err := json.Unmarshal(resp.Data, &locations); err != nil {
+		return nil, fmt.Errorf("list cloud networking locations unmarshal: %w", err)
+	}
+	return locations, nil
 }
 
 func (c *Client) GetServerNICs(mbpkgID int) ([]ServerNIC, error) {

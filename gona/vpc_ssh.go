@@ -3,13 +3,81 @@ package gona
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 )
 
 type VPCSSHSettings struct {
-	Port    *int           `json:"port,omitempty"`
-	Enabled bool           `json:"enabled"`
-	Keys    []VPCSSHKey    `json:"keys,omitempty"`
-	Bastion *VPCSSHBastion `json:"bastion,omitempty"`
+	Port    *int                 `json:"port,omitempty"`
+	Enabled bool                 `json:"enabled"`
+	Keys    map[string]VPCSSHKey `json:"keys,omitempty"`
+	Bastion *VPCSSHBastion       `json:"bastion,omitempty"`
+}
+
+func (s *VPCSSHSettings) UnmarshalJSON(data []byte) error {
+	type alias VPCSSHSettings
+	var aux struct {
+		*alias
+		Port json.RawMessage `json:"port"`
+	}
+	aux.alias = (*alias)(s)
+	if err := json.Unmarshal(data, &aux); err != nil {
+		// The keys field arrives either as a map of key id to key, or wrapped in the list
+		// envelope this API uses elsewhere: {meta, data:[...]}. Decoding it as a map alone fails
+		// against the second shape.
+		var wrapped struct {
+			*alias
+			Port json.RawMessage `json:"port"`
+			Keys struct {
+				Data []VPCSSHKey `json:"data"`
+			} `json:"keys"`
+		}
+		wrapped.alias = (*alias)(s)
+		if werr := json.Unmarshal(data, &wrapped); werr != nil {
+			return err
+		}
+		s.Keys = make(map[string]VPCSSHKey, len(wrapped.Keys.Data))
+		for _, k := range wrapped.Keys.Data {
+			s.Keys[strconv.Itoa(k.ID)] = k
+		}
+		aux.Port = wrapped.Port
+	}
+	if len(aux.Port) == 0 || string(aux.Port) == "null" {
+		s.Port = nil
+		return nil
+	}
+	port, err := decodeVPCSSHPort(aux.Port)
+	if err != nil {
+		return err
+	}
+	s.Port = port
+	return nil
+}
+
+func decodeVPCSSHPort(raw json.RawMessage) (*int, error) {
+	var port int
+	if err := json.Unmarshal(raw, &port); err == nil {
+		return &port, nil
+	}
+
+	var portString string
+	if err := json.Unmarshal(raw, &portString); err == nil {
+		parsed, err := strconv.Atoi(portString)
+		if err != nil {
+			return nil, err
+		}
+		return &parsed, nil
+	}
+
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return nil, err
+	}
+	for _, key := range []string{"port", "value", "number"} {
+		if value, ok := fields[key]; ok {
+			return decodeVPCSSHPort(value)
+		}
+	}
+	return nil, fmt.Errorf("VPC SSH port object has no port value")
 }
 
 type VPCSSHBastion struct {

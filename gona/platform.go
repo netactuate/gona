@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"sort"
+	"strconv"
 )
 
 type PlatformStatusService struct {
@@ -117,6 +119,114 @@ func (c *Client) GetPlatformChangeLog() ([]PlatformChangeLogEntry, error) {
 		return nil, fmt.Errorf("get platform change log: %w", err)
 	}
 	return entries, nil
+}
+
+// GetPlatformChangeLogEntry returns a single platform change log entry by id.
+func (c *Client) GetPlatformChangeLogEntry(id int) (*PlatformChangeLogEntry, error) {
+	var entry PlatformChangeLogEntry
+	path := fmt.Sprintf("platform/change-log/%d", id)
+	if err := c.get(context.Background(), path, &entry); err != nil {
+		return nil, fmt.Errorf("get platform change log entry %d: %w", id, err)
+	}
+	return &entry, nil
+}
+
+// GetPlatformDatacenters returns datacenters for a location.
+func (c *Client) GetPlatformDatacenters(location string) ([]Datacenter, error) {
+	var datacenters []Datacenter
+	path := "platform/datacenters/" + url.PathEscape(location)
+	if err := c.get(context.Background(), path, &datacenters); err != nil {
+		return nil, fmt.Errorf("get platform datacenters for %s: %w", location, err)
+	}
+	return datacenters, nil
+}
+
+// PlatformLookingGlassInit is the looking glass initialization payload.
+type PlatformLookingGlassInit struct {
+	Raw json.RawMessage `json:"-"`
+}
+
+// UnmarshalJSON records the complete looking glass initialization payload.
+func (i *PlatformLookingGlassInit) UnmarshalJSON(data []byte) error {
+	i.Raw = append(i.Raw[:0], data...)
+	return nil
+}
+
+// PlatformLookingGlassExecuteOptions contains optional looking glass execution parameters.
+type PlatformLookingGlassExecuteOptions struct {
+	Action   *string
+	Target   *string
+	Location *string
+	Full     *int
+}
+
+// PlatformLookingGlassResult is the output returned by a looking glass action.
+type PlatformLookingGlassResult struct {
+	Raw json.RawMessage `json:"-"`
+}
+
+// UnmarshalJSON records the complete looking glass execution payload.
+func (r *PlatformLookingGlassResult) UnmarshalJSON(data []byte) error {
+	r.Raw = append(r.Raw[:0], data...)
+	return nil
+}
+
+// PlatformMaintenanceInfo is a platform maintenance detail payload.
+type PlatformMaintenanceInfo struct {
+	Raw json.RawMessage `json:"-"`
+}
+
+// UnmarshalJSON records the complete platform maintenance detail payload.
+func (i *PlatformMaintenanceInfo) UnmarshalJSON(data []byte) error {
+	i.Raw = append(i.Raw[:0], data...)
+	return nil
+}
+
+// GetPlatformLookingGlassInit returns the options used to initialize looking glass calls.
+func (c *Client) GetPlatformLookingGlassInit() (*PlatformLookingGlassInit, error) {
+	var init PlatformLookingGlassInit
+	if err := c.get(context.Background(), "platform/looking-glass/init", &init); err != nil {
+		return nil, fmt.Errorf("get platform looking glass init: %w", err)
+	}
+	return &init, nil
+}
+
+// ExecutePlatformLookingGlass executes a looking glass action with optional query parameters.
+func (c *Client) ExecutePlatformLookingGlass(opts PlatformLookingGlassExecuteOptions) (*PlatformLookingGlassResult, error) {
+	values := url.Values{}
+	if opts.Action != nil {
+		values.Set("action", *opts.Action)
+	}
+	if opts.Target != nil {
+		values.Set("target", *opts.Target)
+	}
+	if opts.Location != nil {
+		values.Set("location", *opts.Location)
+	}
+	if opts.Full != nil {
+		values.Set("full", strconv.Itoa(*opts.Full))
+	}
+
+	path := "platform/looking-glass/execute"
+	if encoded := values.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
+
+	var result PlatformLookingGlassResult
+	if err := c.get(context.Background(), path, &result); err != nil {
+		return nil, fmt.Errorf("execute platform looking glass: %w", err)
+	}
+	return &result, nil
+}
+
+// GetPlatformMaintenanceInfo returns maintenance detail by id.
+func (c *Client) GetPlatformMaintenanceInfo(id int) (*PlatformMaintenanceInfo, error) {
+	var info PlatformMaintenanceInfo
+	path := fmt.Sprintf("platform/maintenance-info/%d", id)
+	if err := c.get(context.Background(), path, &info); err != nil {
+		return nil, fmt.Errorf("get platform maintenance info %d: %w", id, err)
+	}
+	return &info, nil
 }
 
 type PlatformEvents struct {

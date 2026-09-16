@@ -76,9 +76,7 @@ type SingleMetal struct {
 	//   json: cannot unmarshal number into Go struct field SingleMetal.ob_id of type string
 	// so netactuate_metal could not read a machine at all, and neither could its destroy,
 	// which is why the acceptance test both failed AND left a billable machine behind.
-	// Found 2026-09-10 by actually buying one, which is exactly what Craig's item 5 said
-	// had never been done: metal was code read only, never live tested.
-	// json.Number accepts either shape, so a later string does not break it again.
+	// json.Number accepts the numeric wire shape and also tolerates a later string.
 	OBID               json.Number `json:"ob_id"`
 	Info               string      `json:"info"`
 	Title              string      `json:"title"`

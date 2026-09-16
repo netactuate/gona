@@ -195,8 +195,7 @@ func (c *V3Client) get(path string) (*V3APIResponse, error) {
 // OIDC auth and change logs arrive as data.logs.{meta,data} and client keys as
 // data.keys.{meta,data}. Passing the empty key selects the flat shape. Getting this wrong is
 // silent rather than loud: the envelope unmarshals fine, the inner Data is nil, and the failure
-// surfaces later as "unexpected end of JSON input", which is what three OIDC acceptance tests
-// hit on 2026-09-11.
+// surfaces later as "unexpected end of JSON input".
 func unwrapV3List(raw json.RawMessage, key string) (V3ListData, error) {
 	if key != "" {
 		var nested map[string]json.RawMessage
@@ -210,11 +209,64 @@ func unwrapV3List(raw json.RawMessage, key string) (V3ListData, error) {
 		raw = inner
 	}
 
+	return parseV3List(raw)
+}
+
+func parseV3List(raw json.RawMessage) (V3ListData, error) {
+	if len(raw) == 0 {
+		return V3ListData{}, fmt.Errorf("vAPI3 list response has empty data")
+	}
+	if bytes.HasPrefix(bytes.TrimSpace(raw), []byte("[")) {
+		return V3ListData{Data: raw}, nil
+	}
+
 	var listData V3ListData
 	if err := json.Unmarshal(raw, &listData); err != nil {
 		return V3ListData{}, err
 	}
-	return listData, nil
+	if len(listData.Data) > 0 {
+		trimmedData := bytes.TrimSpace(listData.Data)
+		if bytes.HasPrefix(trimmedData, []byte("[")) {
+			return listData, nil
+		}
+		if bytes.HasPrefix(trimmedData, []byte("{")) && hasV3ListDataKey(listData.Data) {
+			innerList, err := parseV3List(listData.Data)
+			if err == nil && len(innerList.Data) > 0 {
+				return innerList, nil
+			}
+		}
+		return listData, nil
+	}
+
+	var nested map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &nested); err != nil {
+		return V3ListData{}, err
+	}
+	for nestedKey, inner := range nested {
+		if nestedKey == "meta" {
+			continue
+		}
+		if !hasV3ListDataKey(inner) {
+			continue
+		}
+		innerList, err := parseV3List(inner)
+		if err == nil && len(innerList.Data) > 0 {
+			return innerList, nil
+		}
+	}
+	return V3ListData{}, fmt.Errorf("vAPI3 list response has no list data")
+}
+
+func hasV3ListDataKey(raw json.RawMessage) bool {
+	if !bytes.HasPrefix(bytes.TrimSpace(raw), []byte("{")) {
+		return false
+	}
+	var object map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &object); err != nil {
+		return false
+	}
+	_, ok := object["data"]
+	return ok
 }
 
 func (c *V3Client) getList(path string) (*V3ListData, error) {
@@ -262,8 +314,8 @@ func (c *V3Client) getListUnder(path, key string) (*V3ListData, error) {
 
 		allData = append(allData, pageData...)
 
-		// Guard against a page that does not advance. Verified 2026-09-10 that vAPI3
-		// honours offset and echoes it back, so this should never fire, but a list call
+		// Guard against a page that does not advance. vAPI3 honours offset and echoes it
+		// back, so this should never fire, but a list call
 		// that loops forever against the API is a worse bug than the truncation this
 		// helper exists to fix. Fail closed with what we have rather than spin.
 		if nextListData.Meta.Offset <= meta.Offset || len(pageData) == 0 {
@@ -376,7 +428,7 @@ func (c *V3Client) postWithRetry(path string, maxRetries int, retryInterval time
 		return resp, nil
 	}
 	for i := 0; i < maxRetries && isTransientServerError(err); i++ {
-		c.debugLog("POST %s returned transient error (attempt %d/%d): %v — retrying in %v",
+		c.debugLog("POST %s returned transient error (attempt %d/%d): %v, retrying in %v",
 			path, i+1, maxRetries, err, retryInterval)
 		time.Sleep(retryInterval)
 		resp, err = c.post(path, nil)

@@ -74,7 +74,7 @@ type NKEAddonTimestamps struct {
 //	netactuate-dns  write {zone, mode}                  read {zones: [{dnsZoneId, zone, mode}]}
 //	storage         write {poolLabel, capacity, ...}    read {integrations: [{...}]}
 //
-// Both verified live on 2026-09-10 against clusters built for the purpose.
+// Both known addon types use this read shape.
 type NKEAddonReadConfig struct {
 	Zones        []NKEDNSAddonZone            `json:"zones"`
 	Integrations []NKEStorageAddonIntegration `json:"integrations"`

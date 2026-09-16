@@ -46,6 +46,10 @@ type UpdateVPCBackendRequest struct {
 	Address string `json:"address,omitempty"`
 }
 
+type ReplaceVPCBackendsRequest struct {
+	BackendHosts []VPCBackend `json:"backendHosts"`
+}
+
 func (c *V3Client) CreateVPCBackendTemplate(vpcID int, req *CreateVPCBackendTemplateRequest) (*VPCBackendTemplate, error) {
 	path := fmt.Sprintf("/vpcs/%d/backend-templates", vpcID)
 	resp, err := c.post(path, req)
@@ -131,6 +135,20 @@ func (c *V3Client) CreateVPCBackend(vpcID, templateID int, req *CreateVPCBackend
 		return nil, fmt.Errorf("create backend unmarshal: %w", err)
 	}
 	return &backend, nil
+}
+
+// ReplaceVPCBackends replaces all backends for a VPC backend template.
+func (c *V3Client) ReplaceVPCBackends(vpcID, templateID int, req *ReplaceVPCBackendsRequest) ([]VPCBackend, error) {
+	path := fmt.Sprintf("/vpcs/%d/backend-templates/%d/backends", vpcID, templateID)
+	resp, err := c.put(path, req)
+	if err != nil {
+		return nil, fmt.Errorf("replace backends for template %d VPC %d: %w", templateID, vpcID, err)
+	}
+	var backends []VPCBackend
+	if err := json.Unmarshal(resp.Data, &backends); err != nil {
+		return nil, fmt.Errorf("replace backends unmarshal: %w", err)
+	}
+	return backends, nil
 }
 
 func (c *V3Client) ListVPCBackends(vpcID, templateID int) ([]VPCBackend, error) {

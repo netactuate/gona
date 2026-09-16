@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strconv"
 )
 
@@ -35,6 +36,27 @@ type TagResource struct {
 	ResourceName  string `json:"resource_name"`
 	Identifier    int    `json:"identifier"`
 	CreatedAt     string `json:"created_at"`
+}
+
+// TagLog is a log entry for a tag.
+type TagLog struct {
+	ID        int             `json:"id,omitempty"`
+	TagID     int             `json:"tag_id,omitempty"`
+	Action    string          `json:"action,omitempty"`
+	Message   string          `json:"message,omitempty"`
+	CreatedAt string          `json:"created_at,omitempty"`
+	Raw       json.RawMessage `json:"-"`
+}
+
+// UnmarshalJSON records the complete tag log payload while exposing common fields.
+func (l *TagLog) UnmarshalJSON(data []byte) error {
+	type Alias TagLog
+	aux := (*Alias)(l)
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	l.Raw = append(l.Raw[:0], data...)
+	return nil
 }
 
 // CreateTagRequest is the POST /tags body. Per the API, the create call only
@@ -147,22 +169,32 @@ func (c *Client) RemoveTagResource(tagID int, resourceName string, identifier in
 	return c.postJSON(context.Background(), "tags/"+strconv.Itoa(tagID)+"/remove-resource", body, nil)
 }
 
-// GetResourceTags returns the tags currently assigned to a given resource. It
-// derives this from GET /tags (which embeds Resources[]) so it depends only on
-// the well-verified list endpoint, not the thinner per-resource sub-endpoints.
+// GetResourceTags returns the tags currently assigned to a given resource.
 func (c *Client) GetResourceTags(resourceName string, resourceID int) ([]Tag, error) {
-	tags, err := c.GetTags()
-	if err != nil {
-		return nil, err
+	var tags []Tag
+	path := fmt.Sprintf("tags/resource/%s/id/%d", url.PathEscape(resourceName), resourceID)
+	if err := c.get(context.Background(), path, &tags); err != nil {
+		return nil, fmt.Errorf("get tags for %s %d: %w", resourceName, resourceID, err)
 	}
-	var out []Tag
-	for _, t := range tags {
-		for _, r := range t.Resources {
-			if r.ResourceName == resourceName && r.Identifier == resourceID {
-				out = append(out, t)
-				break
-			}
-		}
+	return tags, nil
+}
+
+// GetTagResources returns the resources currently assigned to a tag.
+func (c *Client) GetTagResources(tagID int) ([]TagResource, error) {
+	var resources []TagResource
+	path := fmt.Sprintf("tags/%d/resources", tagID)
+	if err := c.get(context.Background(), path, &resources); err != nil {
+		return nil, fmt.Errorf("get resources for tag %d: %w", tagID, err)
 	}
-	return out, nil
+	return resources, nil
+}
+
+// GetTagLogs returns log entries for a tag.
+func (c *Client) GetTagLogs(tagID int) ([]TagLog, error) {
+	var logs []TagLog
+	path := fmt.Sprintf("tags/%d/logs", tagID)
+	if err := c.get(context.Background(), path, &logs); err != nil {
+		return nil, fmt.Errorf("get logs for tag %d: %w", tagID, err)
+	}
+	return logs, nil
 }

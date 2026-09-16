@@ -23,8 +23,8 @@ type CloudPool struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	// A CPU model string such as "EPYC-Milan", not a vcpu count, despite the name. Null on
-	// pools that do not constrain it. Modelled as *int on 2026-09-11 from a single sampled row
-	// where it happened to be null, which failed the moment a second pool was read.
+	// pools that do not constrain it. This must be a string pointer, not an int pointer,
+	// because non-null rows carry CPU model text.
 	RequiredVCPU      *string  `json:"required_vcpu"`
 	HardCapabilities  []string `json:"hard_capabilities"`
 	SoftCapabilities  []string `json:"soft_capabilities"`

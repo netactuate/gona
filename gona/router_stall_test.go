@@ -8,11 +8,11 @@ import (
 
 // A stalled cloud router build keeps a null date on every remaining step forever, and never
 // sets readyOn. This test pins the shape that detection depends on: the exact body observed
-// from a router that stalled on 2026-09-10 must parse into "5 steps done, stuck on Cloud
+// from a router that stalled must parse into "5 steps done, stuck on Cloud
 // Router configured", which is what the wait loop counts.
 func TestRouterBuildStallShapeIsDetectable(t *testing.T) {
 	const body = `{
-	  "name": "nah-stalled-router",
+	  "name": "stalled-router",
 	  "readyOn": null,
 	  "build": [
 	    {"text": "Began creation.",                        "date": "2026-09-10T15:15:39.247Z"},

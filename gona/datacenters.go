@@ -1,18 +1,18 @@
 package gona
 
 import (
-// 	"net/url"
-// 	"strconv"
-//   "log"
-     "context"
-     "fmt"
-//	"github.com/google/go-querystring/query"
+	// 	"net/url"
+	// 	"strconv"
+	//   "log"
+	"context"
+	"fmt"
+	// "github.com/google/go-querystring/query"
 )
 
 type Datacenter struct {
-    ID   int    `json:"id"`
-    Name string `json:"name"`
-    IATA string `json:"iata"`
+	ID   int    `json:"id"`
+	Name string `json:"name"`
+	IATA string `json:"iata"`
 }
 
 func (c *Client) GetDatacenterByIATA(iata string) (int, error) {

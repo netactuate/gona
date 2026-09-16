@@ -10,9 +10,8 @@ import (
 
 // Package struct stores the purchased package values.
 //
-// ID, Locked and Installed are json.Number rather than int or string. The `,string` tags this
-// struct carried until 2026-09-11 asserted the API quotes those values, and it does not:
-// cloud/packages and cloud/package/{id} both send them as unquoted numbers, so every call
+// ID, Locked and Installed are json.Number rather than int or string. The API does not quote
+// those values: cloud/packages and cloud/package/{id} both send them as unquoted numbers, so every call
 // failed outright with
 //
 //	json: invalid use of ,string struct tag, trying to unmarshal unquoted value into int

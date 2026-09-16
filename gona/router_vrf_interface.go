@@ -34,21 +34,38 @@ type UpdateRouterVRFInterfaceResponse struct {
 }
 
 type RouterVRFInterface struct {
-	InterfaceID        int                                `json:"interfaceId"`
-	VrfID              int                                `json:"vrfId"`
-	Type               string                             `json:"type"`
-	Name               string                             `json:"name"`
-	Description        *string                            `json:"description"`
-	IPv4CIDR           *string                            `json:"ipv4Cidr"`
-	IPv6CIDR           *string                            `json:"ipv6Cidr"`
-	EthernetHardwareID *string                            `json:"ethernetHardwareId"`
-	WireguardPort      *int                               `json:"wireguardPort"`
-	PublicKey          *string                            `json:"publicKey,omitempty"`
-	StaticRoutes       []interface{}                      `json:"staticRoutes"`
-	Peers              []RouterVRFInterfaceWireguardPeer  `json:"peers,omitempty"`
+	InterfaceID        int                               `json:"interfaceId"`
+	VrfID              int                               `json:"vrfId"`
+	Type               string                            `json:"type"`
+	Name               string                            `json:"name"`
+	Description        *string                           `json:"description"`
+	IPv4CIDR           *string                           `json:"ipv4Cidr"`
+	IPv6CIDR           *string                           `json:"ipv6Cidr"`
+	EthernetHardwareID *string                           `json:"ethernetHardwareId"`
+	WireguardPort      *int                              `json:"wireguardPort"`
+	PublicKey          *string                           `json:"publicKey,omitempty"`
+	StaticRoutes       []interface{}                     `json:"staticRoutes"`
+	Peers              []RouterVRFInterfaceWireguardPeer `json:"peers,omitempty"`
 }
 
 type GetRouterVRFInterfacesResponse map[string]RouterVRFInterface
+
+// ListRouterVRFInterfaces returns all interfaces configured on a router VRF.
+func (c *V3Client) ListRouterVRFInterfaces(routerID int, vrfID int) (GetRouterVRFInterfacesResponse, error) {
+	path := fmt.Sprintf("/cloud-routing/routers/%d/config/vrfs/%d/interfaces", routerID, vrfID)
+
+	resp, err := c.get(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list interfaces on VRF %d, router %d: %w", vrfID, routerID, err)
+	}
+
+	var interfaces GetRouterVRFInterfacesResponse
+	if err := json.Unmarshal(resp.Data, &interfaces); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal interface list response: %w", err)
+	}
+
+	return interfaces, nil
+}
 
 func (c *V3Client) CreateRouterVRFInterface(routerID int, vrfID int, req CreateRouterVRFInterfaceRequest) (*CreateRouterVRFInterfaceResponse, error) {
 	path := fmt.Sprintf("/cloud-routing/routers/%d/config/vrfs/%d/interfaces", routerID, vrfID)
