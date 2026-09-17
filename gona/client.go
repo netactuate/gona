@@ -372,9 +372,10 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 		// into a silent no-op.
 		for field, wants := range map[string][]string{
 			"id": {
-				"must be a valid zone id",   // GET dns/zone/{id}
-				"must be a valid record id", // GET dns/record/{id}
-				"must be a valid Image ID",  // GET cloud/images/{id}
+				"must be a valid zone id",          // GET dns/zone/{id}
+				"must be a valid record id",        // GET dns/record/{id}
+				"must be a valid Image ID",         // GET cloud/images/{id}
+				"must be a valid account SSH key",  // GET/DELETE account/ssh_key/{id}
 			},
 			"firewall_set_id": {
 				"The firewall set must be a valid", // GET firewall/sets/{id}
