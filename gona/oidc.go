@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 type OIDCBool bool
@@ -275,6 +276,7 @@ type OIDCClientKey struct {
 	Label       string `json:"label"`
 	Description string `json:"description"`
 	ProvidedOn  string `json:"providedOn"`
+	RevokedOn   string `json:"revokedOn"`
 	Type        string `json:"type"`
 	Value       string `json:"value"`
 	PublicKey   string `json:"publicKey"`
@@ -334,6 +336,11 @@ func (c *V3Client) UpdateOIDCClientKey(clientID, keyID int, req *UpdateOIDCClien
 func (c *V3Client) DeleteOIDCClientKey(clientID, keyID int) error {
 	_, err := c.del(fmt.Sprintf("/oidc/clients/%d/keys/%d", clientID, keyID))
 	if err != nil {
+		// Deleting an OIDC key is a revoke. Re-deleting an already-revoked key returns
+		// 400 "The key is revoked"; treat that as already gone so the delete is idempotent.
+		if strings.Contains(strings.ToLower(err.Error()), "the key is revoked") {
+			return nil
+		}
 		return fmt.Errorf("delete OIDC client %d key %d: %w", clientID, keyID, err)
 	}
 	return nil

@@ -144,11 +144,15 @@ func (c *V3Client) ReplaceVPCBackends(vpcID, templateID int, req *ReplaceVPCBack
 	if err != nil {
 		return nil, fmt.Errorf("replace backends for template %d VPC %d: %w", templateID, vpcID, err)
 	}
-	var backends []VPCBackend
-	if err := json.Unmarshal(resp.Data, &backends); err != nil {
+	// The endpoint returns an object carrying the backend hosts, not a bare array,
+	// so decode into the wrapper and return its list.
+	var wrapper struct {
+		BackendHosts []VPCBackend `json:"backendHosts"`
+	}
+	if err := json.Unmarshal(resp.Data, &wrapper); err != nil {
 		return nil, fmt.Errorf("replace backends unmarshal: %w", err)
 	}
-	return backends, nil
+	return wrapper.BackendHosts, nil
 }
 
 func (c *V3Client) ListVPCBackends(vpcID, templateID int) ([]VPCBackend, error) {
