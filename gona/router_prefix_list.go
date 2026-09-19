@@ -84,7 +84,7 @@ func (c *V3Client) GetRouterPrefixList(routerID, prefixListID int) (*RouterPrefi
 		}
 	}
 
-	return nil, fmt.Errorf("prefix list %d not found on router %d", prefixListID, routerID)
+	return nil, &V3NotFoundError{StatusCode: 404, Body: fmt.Sprintf("prefix list %d not found on router %d", prefixListID, routerID)}
 }
 
 func (c *V3Client) UpdateRouterPrefixList(routerID, prefixListID int, req *UpdateRouterPrefixListRequest) (*UpdateRouterPrefixListResponse, error) {

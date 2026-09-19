@@ -108,7 +108,7 @@ func (c *Client) GetTag(id int) (*Tag, error) {
 			return &tags[i], nil
 		}
 	}
-	return nil, fmt.Errorf("tag %d not found", id)
+	return nil, &V3NotFoundError{StatusCode: 404, Body: fmt.Sprintf("tag %d not found", id)}
 }
 
 // CreateTag creates a tag object. The caller should read back by id/name to get

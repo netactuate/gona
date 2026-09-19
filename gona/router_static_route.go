@@ -70,7 +70,7 @@ func (c *V3Client) GetRouterStaticRoute(routerID int, vrfID int, routeID int) (*
 		}
 	}
 
-	return nil, fmt.Errorf("static route %d not found for VRF %d on router %d", routeID, vrfID, routerID)
+	return nil, &V3NotFoundError{StatusCode: 404, Body: fmt.Sprintf("static route %d not found for VRF %d on router %d", routeID, vrfID, routerID)}
 }
 
 func (c *V3Client) CreateRouterStaticRoute(routerID int, vrfID int, req CreateRouterStaticRouteRequest) (*CreateRouterStaticRouteResponse, error) {

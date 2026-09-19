@@ -116,7 +116,7 @@ func (c *V3Client) GetRouterVRFDNATRule(routerID, vrfID, dnatRuleID int) (*Route
 		}
 	}
 
-	return nil, fmt.Errorf("DNAT rule %d not found in router %d VRF %d", dnatRuleID, routerID, vrfID)
+	return nil, &V3NotFoundError{StatusCode: 404, Body: fmt.Sprintf("DNAT rule %d not found in router %d VRF %d", dnatRuleID, routerID, vrfID)}
 }
 
 func (c *V3Client) UpdateRouterVRFDNATRule(routerID, vrfID, dnatRuleID int, req *UpdateRouterVRFDNATRuleRequest) (*UpdateRouterVRFDNATRuleResponse, error) {

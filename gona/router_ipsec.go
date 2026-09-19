@@ -125,7 +125,7 @@ func (c *V3Client) GetRouterVRFIPSecPeer(routerID, vrfID, peerID int) (*RouterVR
 		}
 	}
 
-	return nil, fmt.Errorf("IPSec peer %d not found in router %d VRF %d", peerID, routerID, vrfID)
+	return nil, &V3NotFoundError{StatusCode: 404, Body: fmt.Sprintf("IPSec peer %d not found in router %d VRF %d", peerID, routerID, vrfID)}
 }
 
 func (c *V3Client) CreateRouterVRFIPSecPeer(routerID, vrfID int, req CreateRouterVRFIPSecPeerRequest) (*CreateRouterVRFIPSecPeerResponse, error) {
