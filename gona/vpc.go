@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 )
 
 type VPC struct {
@@ -358,6 +359,16 @@ func (c *V3Client) GetVPCSSHSettings(vpcID int) (*VPCSSHSettings, error) {
 }
 
 func (c *V3Client) WaitForVPCReady(vpcID int) error {
+	return c.WaitForVPCReadyTimeout(vpcID, VPCWaitConfig.Timeout)
+}
+
+// WaitForVPCReadyTimeout waits up to the supplied timeout. A new VPC's gateway can take
+// more than 10 minutes to come online.
+func (c *V3Client) WaitForVPCReadyTimeout(vpcID int, timeout time.Duration) error {
+	cfg := VPCWaitConfig
+	if timeout > 0 {
+		cfg.Timeout = timeout
+	}
 	return c.waitForCondition(func() (bool, error) {
 		vpc, err := c.GetVPC(vpcID)
 		if err != nil {
@@ -365,5 +376,5 @@ func (c *V3Client) WaitForVPCReady(vpcID int) error {
 		}
 		c.debugLog("VPC %d status: %s", vpcID, vpc.Metadata.Status)
 		return vpc.Metadata.Status == "Running", nil
-	}, VPCWaitConfig)
+	}, cfg)
 }

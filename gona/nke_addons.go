@@ -61,6 +61,38 @@ type NKEAddonCondition struct {
 	Message string `json:"message"`
 }
 
+// UnmarshalJSON accepts status as a string ("True") or as a JSON boolean. The nke-addons
+// operator reports conditions with a boolean status, which a plain string field can't
+// decode, so any read of an add-on with reported conditions failed. A boolean is stored
+// as "True" or "False", the Kubernetes spelling.
+func (c *NKEAddonCondition) UnmarshalJSON(data []byte) error {
+	type alias NKEAddonCondition
+	aux := &struct {
+		Status interface{} `json:"status"`
+		*alias
+	}{
+		alias: (*alias)(c),
+	}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	switch v := aux.Status.(type) {
+	case string:
+		c.Status = v
+	case bool:
+		if v {
+			c.Status = "True"
+		} else {
+			c.Status = "False"
+		}
+	case nil:
+		c.Status = ""
+	default:
+		return fmt.Errorf("addon condition status: unexpected type %T", v)
+	}
+	return nil
+}
+
 type NKEAddonTimestamps struct {
 	RequestedOn string `json:"requestedOn"`
 	InstalledOn string `json:"installedOn"`
@@ -207,6 +239,61 @@ func (c *V3Client) DeleteClusterAddon(clusterID int, addonType string) error {
 		return fmt.Errorf("delete NKE cluster %d addon %s: %w", clusterID, addonType, err)
 	}
 	return nil
+}
+
+// NKELBServiceFirewallAllow is one source range the netactuate-cloud-lb add-on opened on the
+// VPC gateway for a managed Service or Ingress.
+type NKELBServiceFirewallAllow struct {
+	FirewallRuleID int    `json:"firewallRuleId"`
+	SourceRange    string `json:"sourceRange"`
+	Protocol       string `json:"protocol"`
+	Port           int    `json:"port"`
+}
+
+// NKELBServicePort is one port of a managed Service or Ingress: the public port on the floating
+// IP and the node port it forwards to.
+type NKELBServicePort struct {
+	Port     int `json:"port"`
+	NodePort int `json:"nodePort"`
+}
+
+// NKELBService is one Kubernetes Service (type LoadBalancer) or Ingress that the
+// netactuate-cloud-lb add-on's in-cluster operator reported. Read-only: the operator
+// creates these rows from cluster objects.
+type NKELBService struct {
+	LBServiceID       int                         `json:"lbServiceId"`
+	ClusterID         int                         `json:"clusterId"`
+	Kind              string                      `json:"kind"`
+	Namespace         string                      `json:"namespace"`
+	Name              string                      `json:"name"`
+	Protocol          string                      `json:"protocol"`
+	Ports             []NKELBServicePort          `json:"ports"`
+	FloatingIPID      int                         `json:"floatingIpId"`
+	L4GroupID         int                         `json:"l4GroupId"`
+	L7GroupID         int                         `json:"l7GroupId"`
+	SourceRanges      []string                    `json:"sourceRanges"`
+	TLSMode           string                      `json:"tlsMode"`
+	Hostnames         []string                    `json:"hostnames"`
+	VIP               string                      `json:"vip"`
+	State             string                      `json:"state"`
+	FailureReason     string                      `json:"failureReason"`
+	Health            json.RawMessage             `json:"health"`
+	Timestamps        json.RawMessage             `json:"timestamps"`
+	FirewallAllowList []NKELBServiceFirewallAllow `json:"firewallAllowList"`
+}
+
+// ListClusterLBServices lists the Services and Ingresses the netactuate-cloud-lb add-on manages
+// on a cluster (GET /nke/clusters/{id}/lb-services).
+func (c *V3Client) ListClusterLBServices(clusterID int) ([]NKELBService, error) {
+	listData, err := c.getList(fmt.Sprintf("/nke/clusters/%d/lb-services?limit=1000", clusterID))
+	if err != nil {
+		return nil, fmt.Errorf("list NKE cluster %d LB services: %w", clusterID, err)
+	}
+	var services []NKELBService
+	if err := json.Unmarshal(listData.Data, &services); err != nil {
+		return nil, fmt.Errorf("list NKE cluster %d LB services data unmarshal: %w", clusterID, err)
+	}
+	return services, nil
 }
 
 func (c *V3Client) ListClusterDNSZones(clusterID int) ([]NKEClusterDNSZone, error) {
