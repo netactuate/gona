@@ -20,7 +20,7 @@ import (
 
 // Version, BaseEndpoint, ContentType constants
 const (
-	Version      = "0.4.0"
+	Version      = "0.4.6"
 	BaseEndpoint = "https://vapi2.netactuate.com/api/"
 	ContentType  = "application/json"
 )

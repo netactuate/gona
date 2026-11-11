@@ -344,6 +344,34 @@ func (c *V3Client) GetVPCIPReservations(vpcID int) (*VPCIPReservations, error) {
 	return &reservations, nil
 }
 
+// VPCIPReservation is one private address reserved in a VPC: a VM's primary interface, an
+// additional interface, or the gateway.
+type VPCIPReservation struct {
+	Network     string `json:"network"`
+	Type        string `json:"type"`
+	Description string `json:"description"`
+	MAC         string `json:"mac"`
+	VM          struct {
+		Name     string `json:"name"`
+		Hostname string `json:"hostname"`
+		MBPkgID  int    `json:"mbpkgid"`
+	} `json:"vm"`
+}
+
+// ListVPCIPReservations lists the private addresses reserved in a VPC
+// (GET /vpcs/{id}/ip-reservations). NKE worker nodes appear here by their mbpkgid.
+func (c *V3Client) ListVPCIPReservations(vpcID int) ([]VPCIPReservation, error) {
+	listData, err := c.getListUnder(fmt.Sprintf("/vpcs/%d/ip-reservations?limit=1000", vpcID), "reservations")
+	if err != nil {
+		return nil, fmt.Errorf("list IP reservations for VPC %d: %w", vpcID, err)
+	}
+	var reservations []VPCIPReservation
+	if err := json.Unmarshal(listData.Data, &reservations); err != nil {
+		return nil, fmt.Errorf("list IP reservations for VPC %d unmarshal: %w", vpcID, err)
+	}
+	return reservations, nil
+}
+
 // GetVPCSSHSettings returns the bastion SSH settings for a VPC.
 func (c *V3Client) GetVPCSSHSettings(vpcID int) (*VPCSSHSettings, error) {
 	path := fmt.Sprintf("/vpcs/%d/ssh", vpcID)
