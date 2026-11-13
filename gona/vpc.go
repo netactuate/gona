@@ -40,6 +40,7 @@ type VPC struct {
 	} `json:"counters"`
 	LoadBalancers      *VPCLoadBalancers `json:"loadBalancers,omitempty"`
 	LoadBalancerGroups json.RawMessage   `json:"loadBalancerGroups,omitempty"`
+	Defaults           *VPCDefaults      `json:"defaults,omitempty"`
 }
 
 // UnmarshalJSON accepts both shapes this API returns for a VPC.
@@ -210,6 +211,7 @@ type VPCFirewallDirections struct {
 
 type VPCDefaults struct {
 	EnableDefaultSnatRule *bool `json:"enableDefaultSnatRule,omitempty"`
+	AddEgressIPToAPIACL   *bool `json:"addEgressIpToApiAcl,omitempty"`
 }
 
 type VPCPortRange struct {
