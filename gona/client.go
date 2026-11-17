@@ -99,7 +99,11 @@ func (c *Client) get(ctx context.Context, path string, data interface{}) error {
 
 // post internal method on Client struct for providing the HTTP POST call
 func (c *Client) post(ctx context.Context, path string, values []byte, data interface{}) error {
-	c.debugLog("POST data for %s: %s", path, string(values))
+	return c.postWithHeaders(ctx, path, values, data, nil)
+}
+
+func (c *Client) postWithHeaders(ctx context.Context, path string, values []byte, data interface{}, headers http.Header) error {
+	c.debugLog("POST data for %s: %s", path, redactBody(path, values))
 
 	req, err := c.newRequest(ctx, "POST", path, bytes.NewBuffer(values))
 	if err != nil {
@@ -108,11 +112,17 @@ func (c *Client) post(ctx context.Context, path string, values []byte, data inte
 
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
+	for key, values := range headers {
+		for _, value := range values {
+			req.Header.Add(key, value)
+		}
+	}
+
 	return c.do(req, data)
 }
 
 func (c *Client) patch(ctx context.Context, path string, values []byte, data interface{}) error {
-	c.debugLog("PATCH data for %s: %s", path, string(values))
+	c.debugLog("PATCH data for %s: %s", path, redactBody(path, values))
 
 	req, err := c.newRequest(ctx, "PATCH", path, bytes.NewBuffer(values))
 	if err != nil {
@@ -125,7 +135,7 @@ func (c *Client) patch(ctx context.Context, path string, values []byte, data int
 }
 
 func (c *Client) put(ctx context.Context, path string, values []byte, data interface{}) error {
-	c.debugLog("PUT data for %s: %s", path, string(values))
+	c.debugLog("PUT data for %s: %s", path, redactBody(path, values))
 
 	req, err := c.newRequest(ctx, "PUT", path, bytes.NewBuffer(values))
 	if err != nil {
@@ -138,7 +148,11 @@ func (c *Client) put(ctx context.Context, path string, values []byte, data inter
 }
 
 func (c *Client) postJSON(ctx context.Context, path string, values []byte, data interface{}) error {
-	c.debugLog("POST JSON data for %s: %s", path, string(values))
+	return c.postJSONWithHeaders(ctx, path, values, data, nil)
+}
+
+func (c *Client) postJSONWithHeaders(ctx context.Context, path string, values []byte, data interface{}, headers http.Header) error {
+	c.debugLog("POST JSON data for %s: %s", path, redactBody(path, values))
 
 	req, err := c.newRequest(ctx, "POST", path, bytes.NewBuffer(values))
 	if err != nil {
@@ -147,11 +161,17 @@ func (c *Client) postJSON(ctx context.Context, path string, values []byte, data 
 
 	req.Header.Set("Content-Type", "application/json")
 
+	for key, values := range headers {
+		for _, value := range values {
+			req.Header.Add(key, value)
+		}
+	}
+
 	return c.do(req, data)
 }
 
 func (c *Client) putJSON(ctx context.Context, path string, values []byte, data interface{}) error {
-	c.debugLog("PUT JSON data for %s: %s", path, string(values))
+	c.debugLog("PUT JSON data for %s: %s", path, redactBody(path, values))
 
 	req, err := c.newRequest(ctx, "PUT", path, bytes.NewBuffer(values))
 	if err != nil {
@@ -194,7 +214,7 @@ func (c *Client) newRequest(ctx context.Context, method string, path string, bod
 	req.Header.Add("User-Agent", c.userAgent)
 	req.Header.Add("Accept", ContentType)
 
-	c.debugLog("making a %s request to %s", method, url)
+	c.debugLog("making a %s request to %s", method, redactURL(url))
 	return req, nil
 }
 
@@ -296,7 +316,7 @@ func (c *Client) do(req *http.Request, data interface{}) error {
 	if err != nil {
 		return err
 	}
-	c.debugLog("got a response: %s", string(body))
+	c.debugLog("got a response: %s", redactBody(req.URL.Path, body))
 
 	r := &apiResponse{}
 	if err := json.Unmarshal(body, r); err != nil {
@@ -557,7 +577,7 @@ func (c *Client) getV2PaginatorPageData(req *http.Request, page int) (json.RawMe
 	if err != nil {
 		return nil, err
 	}
-	c.debugLog("got a paginated response: %s", string(body))
+	c.debugLog("got a paginated response: %s", redactBody(pageReq.URL.Path, body))
 
 	var r apiResponse
 	if err := json.Unmarshal(body, &r); err != nil {

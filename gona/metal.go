@@ -11,15 +11,16 @@ import (
 )
 
 type CreateMetalRequest struct {
-	Location    int    `url:"location,omitempty"`
-	Device      int    `url:"device_id,omitempty"`
-	SSHKey      string `url:"ssh_key,omitempty"`
-	SSHKeyID    int    `url:"ssh_key_id,omitempty"`
-	Password    string `url:"root_password,omitempty"`
-	BuildScript string `url:"build_script,omitempty"`
-	DiskLayout  int    `url:"disklayout,omitempty"`
-	Profile     int    `url:"profile,omitempty"`
-	Hostname    string `url:"fqdn,omitempty"`
+	IdempotencyKey string `url:"-"`
+	Location       int    `url:"location,omitempty"`
+	Device         int    `url:"device_id,omitempty"`
+	SSHKey         string `url:"ssh_key,omitempty"`
+	SSHKeyID       int    `url:"ssh_key_id,omitempty"`
+	Password       string `url:"root_password,omitempty"`
+	BuildScript    string `url:"build_script,omitempty"`
+	DiskLayout     int    `url:"disklayout,omitempty"`
+	Profile        int    `url:"profile,omitempty"`
+	Hostname       string `url:"fqdn,omitempty"`
 }
 
 type BuildMetalRequest struct {
@@ -112,7 +113,7 @@ func (c *Client) CreateMetal(r *CreateMetalRequest) (b MetalBuild, err error) {
 	if err != nil {
 		return b, err
 	}
-	if err := c.post(context.Background(), "dedicated/server/buy_build", []byte(values.Encode()), &b); err != nil {
+	if err := c.postWithHeaders(context.Background(), "dedicated/server/buy_build", []byte(values.Encode()), &b, idempotencyHeaders(r.IdempotencyKey)); err != nil {
 		return b, err
 	}
 
