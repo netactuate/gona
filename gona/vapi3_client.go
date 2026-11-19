@@ -109,7 +109,7 @@ func (c *V3Client) doRequest(method, path string, body interface{}) (*V3APIRespo
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal request body: %w", err)
 		}
-		c.debugLog("%s request body for %s: %s", method, path, string(jsonData))
+		c.debugLog("%s request body for %s: %s", method, path, redactBody(path, jsonData))
 		bodyReader = bytes.NewBuffer(jsonData)
 	}
 
@@ -144,7 +144,7 @@ func (c *V3Client) doRequest(method, path string, body interface{}) (*V3APIRespo
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	c.debugLog("response status=%d body=%s", resp.StatusCode, string(respBody))
+	c.debugLog("response status=%d body=%s", resp.StatusCode, redactBody(path, respBody))
 
 	if resp.StatusCode == 204 {
 		return &V3APIResponse{Code: 204}, nil

@@ -60,6 +60,7 @@ func (c *Client) GetServer(id int) (server Server, err error) {
 
 // CreateServerRequest is as set of parameters for a server creation call.
 type CreateServerRequest struct {
+	IdempotencyKey           string    `url:"-"`
 	Plan                     string    `url:"plan,omitempty"`
 	Location                 int       `url:"location,omitempty"`
 	Image                    int       `url:"image,omitempty"`
@@ -104,7 +105,7 @@ func (c *Client) CreateServer(r *CreateServerRequest) (b ServerBuild, err error)
 		values.Add("script_type", "user-data")
 	}
 
-	if err := c.post(context.Background(), "cloud/server/buy_build", []byte(values.Encode()), &b); err != nil {
+	if err := c.postWithHeaders(context.Background(), "cloud/server/buy_build", []byte(values.Encode()), &b, idempotencyHeaders(r.IdempotencyKey)); err != nil {
 		return b, err
 	}
 

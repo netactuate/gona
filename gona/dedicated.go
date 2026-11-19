@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 // DedicatedDeviceFilterOptions contains optional filters for available
@@ -38,13 +40,14 @@ type DedicatedPlan map[string]json.RawMessage
 
 // DedicatedServerBuildRequest contains deployment fields for a dedicated server.
 type DedicatedServerBuildRequest struct {
-	FQDN         string  `json:"fqdn"`
-	Profile      int     `json:"profile"`
-	DiskLayout   *int    `json:"disklayout,omitempty"`
-	RootPassword *string `json:"root_password,omitempty"`
-	SSHKey       *string `json:"ssh_key,omitempty"`
-	SSHKeyID     *int    `json:"ssh_key_id,omitempty"`
-	BuildScript  *string `json:"build_script,omitempty"`
+	IdempotencyKey string  `json:"-"`
+	FQDN           string  `json:"fqdn"`
+	Profile        int     `json:"profile"`
+	DiskLayout     *int    `json:"disklayout,omitempty"`
+	RootPassword   *string `json:"root_password,omitempty"`
+	SSHKey         *string `json:"ssh_key,omitempty"`
+	SSHKeyID       *int    `json:"ssh_key_id,omitempty"`
+	BuildScript    *string `json:"build_script,omitempty"`
 }
 
 // DedicatedServerActionRequest contains optional fields for dedicated server
@@ -266,7 +269,11 @@ func (c *Client) postDedicatedJSON(path string, req interface{}, data interface{
 	if err != nil {
 		return fmt.Errorf("marshal dedicated server request: %w", err)
 	}
-	return c.postJSON(context.Background(), path, body, data)
+	var headers http.Header
+	if build, ok := req.(*DedicatedServerBuildRequest); ok && build != nil && strings.Contains(path, "dedicated/server/buy_build/") {
+		headers = idempotencyHeaders(build.IdempotencyKey)
+	}
+	return c.postJSONWithHeaders(context.Background(), path, body, data, headers)
 }
 
 func (c *Client) putDedicatedJSON(path string, req interface{}, data interface{}) error {
