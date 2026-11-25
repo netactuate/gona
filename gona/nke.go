@@ -133,6 +133,7 @@ type NKEAccessURLs struct {
 
 type NKEWorkerNode struct {
 	PoolID           int    `json:"poolId,omitempty"`
+	DeleteScheduled  bool   `json:"deleteScheduled,omitempty"`
 	PublicIPAddress  string `json:"publicIpAddress,omitempty"`
 	PrivateIPAddress string `json:"privateIpAddress,omitempty"`
 	PrivateNICState  string `json:"privateNicState,omitempty"`
