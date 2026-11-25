@@ -6,6 +6,8 @@ import (
 )
 
 type VPCAttachment struct {
+	BGP *VPCAttachmentBGP `json:"bgp,omitempty"`
+
 	ID                      int      `json:"id"`
 	Type                    string   `json:"type"`
 	Address                 string   `json:"address"`
@@ -23,6 +25,8 @@ type VPCAttachment struct {
 	Advertise               []string `json:"advertise"`
 }
 type CreateVPCAttachmentRequest struct {
+	BGP *VPCAttachmentBGPRequest `json:"bgp,omitempty"`
+
 	Type        string   `json:"type"`
 	Accept      []string `json:"accept"`
 	Advertise   []string `json:"advertise,omitempty"`
@@ -69,7 +73,7 @@ func (c *V3Client) GetVPCAttachment(vpcID, attachmentID int) (*VPCAttachment, er
 }
 
 func (c *V3Client) CreateVPCAttachment(vpcID int, req *CreateVPCAttachmentRequest) (int, error) {
-	r, err := c.post(fmt.Sprintf("/vpcs/%d/attachments", vpcID), req)
+	r, err := c.drop3Request("POST", fmt.Sprintf("/vpcs/%d/attachments", vpcID), req)
 	if err != nil {
 		return 0, err
 	}
@@ -122,4 +126,30 @@ func (c *V3Client) DeleteVPCAttachmentPrefix(vpcID, attachmentID, prefixID int) 
 		return err
 	}
 	return nil
+}
+
+type VPCAttachmentBGPRequest struct {
+	PeerASN   int    `json:"peerAsn"`
+	MaxPrefix int    `json:"maxPrefix,omitempty"`
+	Password  string `json:"password,omitempty"`
+}
+type VPCAttachmentBGP struct {
+	PeerASN        int    `json:"peerAsn"`
+	MaxPrefix      int    `json:"maxPrefix"`
+	HasPassword    bool   `json:"hasPassword"`
+	GatewayASN     int    `json:"gatewayAsn"`
+	GatewayAddress string `json:"gatewayAddress"`
+	PeerAddress    string `json:"peerAddress"`
+	State          string `json:"state"`
+	StateMessage   string `json:"stateMessage"`
+	AppliedOn      string `json:"appliedOn"`
+}
+
+func (c *V3Client) PutVPCAttachmentBGP(vpcID, attachmentID int, req *VPCAttachmentBGPRequest) error {
+	_, err := c.drop3Request("PUT", fmt.Sprintf("/vpcs/%d/attachments/%d/bgp", vpcID, attachmentID), req)
+	return err
+}
+func (c *V3Client) DeleteVPCAttachmentBGP(vpcID, attachmentID int) error {
+	_, err := c.del(fmt.Sprintf("/vpcs/%d/attachments/%d/bgp", vpcID, attachmentID))
+	return err
 }
