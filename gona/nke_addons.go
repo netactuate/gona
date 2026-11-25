@@ -108,6 +108,8 @@ type NKEAddonTimestamps struct {
 //
 // Both known addon types use this read shape.
 type NKEAddonReadConfig struct {
+	NKEAutoscalerConfig
+
 	Zones        []NKEDNSAddonZone            `json:"zones"`
 	Integrations []NKEStorageAddonIntegration `json:"integrations"`
 }
@@ -319,4 +321,17 @@ func unmarshalV3MaybeList(data json.RawMessage, v interface{}) error {
 		return err
 	}
 	return json.Unmarshal(listData.Data, v)
+}
+
+// NKEAutoscalerConfig contains the catalog settings for netactuate-cluster-autoscaler.
+type NKEAutoscalerConfig struct {
+	ScaleDownEnabled              *bool    `json:"scaleDownEnabled,omitempty"`
+	ScaleDownUnneededTime         *string  `json:"scaleDownUnneededTime,omitempty"`
+	ScaleDownDelayAfterAdd        *string  `json:"scaleDownDelayAfterAdd,omitempty"`
+	ScaleDownUtilizationThreshold *float64 `json:"scaleDownUtilizationThreshold,omitempty"`
+	MaxNodeProvisionTime          *string  `json:"maxNodeProvisionTime,omitempty"`
+	Expander                      *string  `json:"expander,omitempty"`
+	SkipNodesWithLocalStorage     *bool    `json:"skipNodesWithLocalStorage,omitempty"`
+	BalanceSimilarNodeGroups      *bool    `json:"balanceSimilarNodeGroups,omitempty"`
+	MaxNodesTotal                 *int     `json:"maxNodesTotal,omitempty"`
 }
