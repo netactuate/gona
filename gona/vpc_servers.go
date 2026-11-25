@@ -3,6 +3,8 @@ package gona
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 type VPCServer struct {
@@ -15,6 +17,47 @@ type VPCServer struct {
 	State      string `json:"state"`
 	Address    string `json:"address"`
 }
+
+// UnmarshalJSON accepts subnetId as a number, a numeric string or null. vapi3 lists attached
+// rows with a string ("9", "0") and native rows with a number, and POST can answer null (LD-216, LD-242).
+func (s *VPCServer) UnmarshalJSON(data []byte) error {
+	type plain VPCServer
+	var raw struct {
+		*plain
+		SubnetID json.RawMessage `json:"subnetId"`
+	}
+	raw.plain = (*plain)(s)
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	id, err := flexibleInt(raw.SubnetID)
+	if err != nil {
+		return fmt.Errorf("subnetId: %w", err)
+	}
+	s.SubnetID = id
+	return nil
+}
+
+func flexibleInt(raw json.RawMessage) (int, error) {
+	text := strings.TrimSpace(string(raw))
+	if text == "" || text == "null" {
+		return 0, nil
+	}
+	if strings.HasPrefix(text, "\"") {
+		var str string
+		if err := json.Unmarshal(raw, &str); err != nil {
+			return 0, err
+		}
+		if str = strings.TrimSpace(str); str == "" {
+			return 0, nil
+		}
+		return strconv.Atoi(str)
+	}
+	var n int
+	err := json.Unmarshal(raw, &n)
+	return n, err
+}
+
 type AttachVPCServerRequest struct {
 	MBPkgID  int `json:"mbpkgid"`
 	SubnetID int `json:"subnetId,omitempty"`
