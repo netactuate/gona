@@ -3,6 +3,7 @@ package gona
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 )
 
 type NKETag struct {
@@ -27,6 +28,7 @@ type NKEBilling struct {
 }
 
 type NKECluster struct {
+	NetworkMode         string `json:"networkMode,omitempty"`
 	ClusterID           int    `json:"clusterId"`
 	Name                string `json:"name"`
 	ContractID          int    `json:"contractId"`
@@ -46,6 +48,7 @@ type NKECluster struct {
 	Location V3Location `json:"location"`
 	Package  V3Package  `json:"package"`
 	Nodes    struct {
+		Limit       int  `json:"limit,omitempty"`
 		Total       int  `json:"total"`
 		Ready       int  `json:"ready"`
 		Building    int  `json:"building"`
@@ -56,8 +59,9 @@ type NKECluster struct {
 		Unevictable int  `json:"unevictable"`
 	} `json:"nodes"`
 	Networks struct {
-		Pod     string `json:"pod"`
-		Service string `json:"service"`
+		PodEgressMode string `json:"podEgressMode,omitempty"`
+		Pod           string `json:"pod"`
+		Service       string `json:"service"`
 	} `json:"networks"`
 	URLs struct {
 		API                 string `json:"api"`
@@ -90,9 +94,11 @@ type CreateNKEClusterRequest struct {
 }
 
 type NKEClusterNetwork struct {
-	VpcID       int    `json:"vpcId,omitempty"`
-	PodCIDR     string `json:"podCidr,omitempty"`
-	ServiceCIDR string `json:"serviceCidr,omitempty"`
+	PodEgressMode string `json:"podEgressMode,omitempty"`
+	NetworkMode   string `json:"networkMode,omitempty"`
+	VpcID         int    `json:"vpcId,omitempty"`
+	PodCIDR       string `json:"podCidr,omitempty"`
+	ServiceCIDR   string `json:"serviceCidr,omitempty"`
 }
 
 type NKEUpdateNodes struct {
@@ -105,6 +111,7 @@ type NKEUpdateBilling struct {
 }
 
 type UpdateNKEClusterRequest struct {
+	Networking    *NKEClusterNetwork   `json:"networking,omitempty"`
 	Name          string               `json:"name,omitempty"`
 	Version       string               `json:"version,omitempty"`
 	DoAutoscaling *bool                `json:"doAutoscaling,omitempty"`
@@ -125,12 +132,17 @@ type NKEAccessURLs struct {
 }
 
 type NKEWorkerNode struct {
-	WorkerNodeID int    `json:"workerNodeId"`
-	ClusterID    int    `json:"clusterId"`
-	Name         string `json:"name"`
-	MBPkgID      int    `json:"mbpkgid,omitempty"`
-	LocationID   int    `json:"locationId,omitempty"`
-	Status       struct {
+	PoolID           int    `json:"poolId,omitempty"`
+	DeleteScheduled  bool   `json:"deleteScheduled,omitempty"`
+	PublicIPAddress  string `json:"publicIpAddress,omitempty"`
+	PrivateIPAddress string `json:"privateIpAddress,omitempty"`
+	PrivateNICState  string `json:"privateNicState,omitempty"`
+	WorkerNodeID     int    `json:"workerNodeId"`
+	ClusterID        int    `json:"clusterId"`
+	Name             string `json:"name"`
+	MBPkgID          int    `json:"mbpkgid,omitempty"`
+	LocationID       int    `json:"locationId,omitempty"`
+	Status           struct {
 		Ready bool `json:"ready"`
 	} `json:"status"`
 	Package  V3Package  `json:"package"`
@@ -314,6 +326,10 @@ func (c *V3Client) DeleteNKEWorkerNode(clusterID, workerNodeID int) error {
 // caller that reads the nodes as soon as creation returns can see an empty list for a cluster
 // that is about to have several. Waiting on the nodes themselves closes that window.
 func (c *V3Client) WaitForNKEWorkerNodes(clusterID, minimum int) error {
+	return c.WaitForNKEWorkerNodesTimeout(clusterID, minimum, NKEWaitConfig.Timeout)
+}
+
+func (c *V3Client) WaitForNKEWorkerNodesTimeout(clusterID, minimum int, timeout time.Duration) error {
 	if minimum <= 0 {
 		return nil
 	}
@@ -324,10 +340,13 @@ func (c *V3Client) WaitForNKEWorkerNodes(clusterID, minimum int) error {
 		}
 		c.debugLog("NKE cluster %d worker nodes: %d of %d", clusterID, len(nodes), minimum)
 		return len(nodes) >= minimum, nil
-	}, NKEWaitConfig)
+	}, V3WaitConfig{Interval: NKEWaitConfig.Interval, Timeout: timeout})
 }
 
 func (c *V3Client) WaitForNKEClusterHealthy(clusterID int) error {
+	return c.WaitForNKEClusterHealthyTimeout(clusterID, NKEWaitConfig.Timeout)
+}
+func (c *V3Client) WaitForNKEClusterHealthyTimeout(clusterID int, timeout time.Duration) error {
 	return c.waitForCondition(func() (bool, error) {
 		cluster, err := c.GetNKECluster(clusterID)
 		if err != nil {
@@ -341,5 +360,5 @@ func (c *V3Client) WaitForNKEClusterHealthy(clusterID int) error {
 			return true, nil
 		}
 		return false, nil
-	}, NKEWaitConfig)
+	}, V3WaitConfig{Interval: NKEWaitConfig.Interval, Timeout: timeout})
 }
