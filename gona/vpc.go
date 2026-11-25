@@ -41,6 +41,8 @@ type VPC struct {
 	LoadBalancers      *VPCLoadBalancers `json:"loadBalancers,omitempty"`
 	LoadBalancerGroups json.RawMessage   `json:"loadBalancerGroups,omitempty"`
 	Defaults           *VPCDefaults      `json:"defaults,omitempty"`
+	MaxFloatingIPv4s   int               `json:"maxFloatingIpv4s,omitempty"`
+	UsedFloatingIPv4s  int               `json:"usedFloatingIpv4s,omitempty"`
 }
 
 // UnmarshalJSON accepts both shapes this API returns for a VPC.
